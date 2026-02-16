@@ -93,6 +93,7 @@ if uploaded_file is not None:
 
     # Traitement
     df['product_ranking'] = [process_row(row, i) for i, row in df.iterrows()]
+    df['product_ranking'] = pd.to_numeric(df['product_ranking'], errors='coerce').astype('Int64')
     
     # --- AFFICHAGE DES LOGS ---
     st.subheader("Logs d'analyse")
