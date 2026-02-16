@@ -3,9 +3,81 @@ import pandas as pd
 import io
 import re
 
-st.set_page_config(page_title="Product Ranking & Logs", layout="wide")
+st.set_page_config(page_title="DOT import verificator", layout="wide")
 
-st.title("Outil de Ranking et de vérification de fichier")
+st.markdown("""
+    <style>
+        /* Police et couleurs de base */
+        @import url('https://fonts.cdnfonts.com/css/helvetica-neue-55');
+        
+        html, body, [class*="css"] {
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            color: #000000;
+        }
+
+        .main {
+            background-color: #ffffff;
+        }
+
+        /* Titres épurés */
+        h1 {
+            font-weight: 800;
+            letter-spacing: -1px;
+            text-transform: uppercase;
+            font-size: 2rem !important;
+            padding-bottom: 2rem;
+            border-bottom: 2px solid #000000;
+        }
+
+        h3 {
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-size: 1rem !important;
+            margin-top: 2rem !important;
+        }
+
+        /* Boutons et Inputs */
+        .stButton>button {
+            border-radius: 0px;
+            border: 1px solid #000000;
+            background-color: #000000;
+            color: #ffffff;
+            font-weight: 600;
+            text-transform: uppercase;
+            padding: 0.5rem 2rem;
+            transition: 0.3s;
+        }
+
+        .stButton>button:hover {
+            background-color: #ffffff;
+            color: #000000;
+            border: 1px solid #000000;
+        }
+
+        /* File Uploader épuré */
+        section[data-testid="stFileUploadDropzone"] {
+            border-radius: 0px;
+            border: 1px dashed #000000;
+        }
+
+        /* Alertes Logs */
+        .stAlert {
+            border-radius: 0px;
+            border: none;
+            border-left: 5px solid #000000;
+            background-color: #f2f2f2;
+            color: #000000;
+        }
+
+        /* Cacher le menu Streamlit pour plus de propreté */
+        #MainMenu {visibility: hidden;}
+        footer {visibility: hidden;}
+        header {visibility: hidden;}
+    </style>
+""", unsafe_allow_html=True)
+
+st.title("Verifications & Product Ranking")
 
 # --- CHARGEMENT DU MAPPING ---
 # On définit le mapping en dur pour simplifier, ou on pourrait l'uploader
@@ -54,7 +126,19 @@ mapping_data = [
 df_mapping = pd.DataFrame(mapping_data)
 
 # --- INTERFACE ---
-uploaded_file = st.file_uploader("Choisissez votre fichier CSV d'import", type="csv")
+uploaded_file = st.file_uploader("Please import your csv Exit list file", type="csv")
+
+# Consignes formatées
+st.markdown("""
+<div style="font-size: 0.9rem; margin-bottom: 2rem;">
+    Please ensure the file meets the following requirements:<br>
+    • Format: CSV (<b>";"</b>-delimited)</b><br>
+    • Includes a column named <b>"SMC"</b> or <b>"SKU"</b> (uppercase)<br>
+    • Includes a column named <b>"COMMENTAIRES"</b> (uppercase)<br>
+    • Includes a column named <b>"APPELLATION"</b> (uppercase)<br>
+    • Includes a column named <b>"CATEGORY"</b> (uppercase)
+</div>
+""", unsafe_allow_html=True)
 
 if uploaded_file is not None:
     try:
@@ -97,18 +181,18 @@ if uploaded_file is not None:
     df['product_ranking'] = pd.to_numeric(df['product_ranking'], errors='coerce').astype('Int64')
     
     # --- AFFICHAGE DES LOGS ---
-    st.subheader("Logs d'analyse")
+    st.subheader("Analyse logs")
     if logs:
         for log in logs:
-            st.error(log)
+            st.info(log)
     else:
-        st.success("Aucun log d'alerte détecté.")
+        st.write("NO ALERTE DETECTED")
 
     # --- TELECHARGEMENT ---
-    st.subheader("Télécharger le résultat")
+    st.subheader("EXPORT")
     csv = df.to_csv(index=False, sep=';', encoding='utf-8-sig').encode('utf-8-sig')
     st.download_button(
-        label="Télécharger le CSV corrigé",
+        label="Download Ranking Result",
         data=csv,
         file_name="resultat_ranking.csv",
         mime="text/csv"
