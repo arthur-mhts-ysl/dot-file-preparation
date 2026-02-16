@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import io
+import re
 
 st.set_page_config(page_title="Product Ranking & Logs", layout="wide")
 
@@ -66,7 +67,7 @@ if uploaded_file is not None:
     
     def process_row(row, index):
         line_num = index + 2  # +2 car index commence à 0 et ligne 1 est le header
-        smc_val = row.get('smc') or row.get('sku') or "Inconnu"
+        smc_val = row.get('SMC') or row.get('SKU') or "N/A"
         comm = str(row.get('COMMENTAIRES', '')).upper()
         name = str(row.get('product_name', row.get('APPELLATION', ''))).lower()
         cat = str(row.get('category_ids', row.get('CATEGORY', ''))).upper()
@@ -75,7 +76,7 @@ if uploaded_file is not None:
         if "LOOK PURPOSE ONLY" in comm or "NOT FOR SALE" in comm:
             logs.append(f"Row {line_num} : {smc_val} - NOT FOR SALE")
         
-        if "OLD" in comm:
+        if re.search(r'\bOLD\b', comm):
             logs.append(f"Row {line_num} : {smc_val} - SMC SWITCH")
             
         # --- LOGIQUE DE RANKING ---
