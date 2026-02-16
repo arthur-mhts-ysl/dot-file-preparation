@@ -56,9 +56,12 @@ df_mapping = pd.DataFrame(mapping_data)
 uploaded_file = st.file_uploader("Choisissez votre fichier CSV d'import", type="csv")
 
 if uploaded_file is not None:
-    # Lecture du CSV (détection du séparateur)
-    df = pd.read_csv(uploaded_file, sep=None, engine='python')
-    
+    try:
+        df = pd.read_csv(uploaded_file, sep=';', encoding='latin-1', dtype=str)
+    except Exception:
+        uploaded_file.seek(0)
+        df = pd.read_csv(uploaded_file, sep=';', encoding='utf-8-sig', dtype=str)
+        
     logs = []
     
     def process_row(row, index):
@@ -101,5 +104,10 @@ if uploaded_file is not None:
 
     # --- TELECHARGEMENT ---
     st.subheader("Télécharger le résultat")
-    csv = df.to_csv(index=False, sep=';').encode('utf-8-sig')
-    st.download_button("Télécharger le CSV corrigé", csv, "resultat_ranking.csv", "text/csv")
+    csv = df.to_csv(index=False, sep=';', encoding='utf-8-sig').encode('utf-8-sig')
+    st.download_button(
+        label="Télécharger le CSV corrigé",
+        data=csv,
+        file_name="resultat_ranking.csv",
+        mime="text/csv"
+    )
