@@ -67,7 +67,7 @@ if uploaded_file is not None:
     def process_row(row, index):
         line_num = index + 2  # +2 car index commence à 0 et ligne 1 est le header
         smc_val = row.get('smc') or row.get('sku') or "Inconnu"
-        comm = str(row.get('commentaires', '')).upper()
+        comm = str(row.get('COMMENTAIRES', '')).upper()
         name = str(row.get('product_name', row.get('APPELLATION', ''))).lower()
         cat = str(row.get('category_ids', row.get('CATEGORY', ''))).upper()
         
