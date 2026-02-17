@@ -89,6 +89,7 @@ mapping_data = [
     {"keywords": "trench", "rank": 2},
     {"keywords": "parka", "rank": 2},
     {"keywords": "blouson cuir", "rank": 3},
+    {"keywords": "blouson biker", "rank": 3},
     {"keywords": "veste cuir", "rank": 3},
     {"keywords": "perfecto", "rank": 3},
     {"keywords": "veste", "rank": 4},
