@@ -3,11 +3,12 @@ import pandas as pd
 import io
 import re
 
+# --- CONFIGURATION ---
 st.set_page_config(page_title="DOT import verificator", layout="wide")
 
+# --- DESIGN SAINT LAURENT ---
 st.markdown("""
     <style>
-        /* Police et couleurs de base */
         @import url('https://fonts.cdnfonts.com/css/helvetica-neue-55');
         
         html, body, [class*="css"] {
@@ -19,7 +20,6 @@ st.markdown("""
             background-color: #ffffff;
         }
 
-        /* Titres épurés */
         h1 {
             font-weight: 800;
             letter-spacing: -1px;
@@ -37,7 +37,6 @@ st.markdown("""
             margin-top: 2rem !important;
         }
 
-        /* Boutons et Inputs */
         .stButton>button {
             border-radius: 0px;
             border: 1px solid #000000;
@@ -55,13 +54,11 @@ st.markdown("""
             border: 1px solid #000000;
         }
 
-        /* File Uploader épuré */
         section[data-testid="stFileUploadDropzone"] {
             border-radius: 0px;
             border: 1px dashed #000000;
         }
 
-        /* Alertes Logs */
         .stAlert {
             border-radius: 0px;
             border: none;
@@ -70,7 +67,6 @@ st.markdown("""
             color: #000000;
         }
 
-        /* Cacher le menu Streamlit pour plus de propreté */
         #MainMenu {visibility: hidden;}
         footer {visibility: hidden;}
         header {visibility: hidden;}
@@ -79,8 +75,10 @@ st.markdown("""
 
 st.title("Verifications & Product Ranking")
 
+# --- LISTE DES MATIÈRES CUIR ---
+LEATHER_KEYWORDS = ["CUIR", "VEAU", "TAUREAU", "VACHE", "CROCODILE", "ALIGATOR", "PYTHON", "AGNEAU", "PEAU"]
+
 # --- CHARGEMENT DU MAPPING ---
-# On définit le mapping en dur pour simplifier, ou on pourrait l'uploader
 mapping_data = [
     {"keywords": "manteau cuir", "rank": 1},
     {"keywords": "mac", "rank": 1},
@@ -92,6 +90,7 @@ mapping_data = [
     {"keywords": "blouson biker", "rank": 3},
     {"keywords": "veste cuir", "rank": 3},
     {"keywords": "perfecto", "rank": 3},
+    {"keywords": "blouson", "rank": 4},
     {"keywords": "veste", "rank": 4},
     {"keywords": "jacket", "rank": 4},
     {"keywords": "blazer", "rank": 4},
@@ -129,15 +128,15 @@ df_mapping = pd.DataFrame(mapping_data)
 # --- INTERFACE ---
 uploaded_file = st.file_uploader("Please import your csv Exit list file", type="csv")
 
-# Consignes formatées
 st.markdown("""
-<div style="font-size: 0.9rem; margin-bottom: 2rem;">
+<div style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 2rem;">
     Please ensure the file meets the following requirements:<br>
-    • Format: CSV (<b>";"</b>-delimited)</b><br>
-    • Includes a column named <b>"SMC"</b> or <b>"SKU"</b> (uppercase)<br>
-    • Includes a column named <b>"COMMENTAIRES"</b> (uppercase)<br>
-    • Includes a column named <b>"APPELLATION"</b> (uppercase)<br>
-    • Includes a column named <b>"CATEGORY"</b> (uppercase)
+    • Format: CSV (<b>";"</b>-delimited)<br>
+    • Column: <b>"SMC"</b> or <b>"SKU"</b> (uppercase)<br>
+    • Column: <b>"COMMENTAIRES"</b> (uppercase)<br>
+    • Column: <b>"APPELLATION"</b> (uppercase)<br>
+    • Column: <b>"CATEGORY"</b> (uppercase)<br>
+    • Column: <b>"DESCRIPTIF MATIERE"</b> (uppercase)
 </div>
 """, unsafe_allow_html=True)
 
@@ -151,28 +150,42 @@ if uploaded_file is not None:
     logs = []
     
     def process_row(row, index):
-        line_num = index + 2  # +2 car index commence à 0 et ligne 1 est le header
+        line_num = index + 2  
         smc_val = row.get('SMC') or row.get('SKU') or "N/A"
         comm = str(row.get('COMMENTAIRES', '')).upper()
-        name = str(row.get('product_name', row.get('APPELLATION', ''))).lower()
-        cat = str(row.get('category_ids', row.get('CATEGORY', ''))).upper()
+        
+        name = str(row.get('APPELLATION', row.get('product_name', ''))).lower()
+        cat = str(row.get('CATEGORY', row.get('category_ids', ''))).upper()
+        material = str(row.get('DESCRIPTIF MATIERE', '')).upper()
         
         # --- LOGS DES COMMENTAIRES ---
-        if "LOOK PURPOSE ONLY" in comm or "NOT FOR SALE" in comm or "LOOK PURPOSES ONLY" in comm:
-            logs.append(f"Row {line_num} : {smc_val} - NOT FOR SALE")
+        if any(x in comm for x in ["LOOK PURPOSE ONLY", "NOT FOR SALE", "LOOK PURPOSES ONLY"]):
+            logs.append(f"ROW {line_num} : {smc_val} — NOT FOR SALE")
         
         if re.search(r'\bOLD\b', comm):
-            logs.append(f"Row {line_num} : {smc_val} - SMC SWITCH")
+            logs.append(f"ROW {line_num} : {smc_val} — SMC SWITCH")
             
+        # --- DÉTECTION CUIR ---
+        is_leather = any(k in name.upper() for k in LEATHER_KEYWORDS) or \
+                     any(k in material for k in LEATHER_KEYWORDS)
+
         # --- LOGIQUE DE RANKING ---
         final_rank = row.get('product_ranking', None)
         if "RTW" in cat:
             found_rank = None
+            
+            # 1. Recherche via le dictionnaire de mots-clés
             for _, m_row in df_mapping.iterrows():
                 keywords = str(m_row['keywords']).lower().split()
                 if all(k in name for k in keywords):
                     found_rank = m_row['rank']
                     break
+            
+            # 2. Surclassement automatique si Cuir détecté dans la matière
+            if is_leather:
+                if found_rank == 2: found_rank = 1  # Manteau -> Manteau Cuir
+                if found_rank == 4: found_rank = 3  # Veste -> Veste Cuir
+            
             final_rank = found_rank if found_rank else 17
             
         return final_rank
@@ -182,12 +195,12 @@ if uploaded_file is not None:
     df['product_ranking'] = pd.to_numeric(df['product_ranking'], errors='coerce').astype('Int64')
     
     # --- AFFICHAGE DES LOGS ---
-    st.subheader("Analyse logs")
+    st.subheader("ANALYSIS LOGS")
     if logs:
         for log in logs:
             st.info(log)
     else:
-        st.write("NO ALERTE DETECTED")
+        st.write("NO ALERT DETECTED")
 
     # --- TELECHARGEMENT ---
     st.subheader("EXPORT")
