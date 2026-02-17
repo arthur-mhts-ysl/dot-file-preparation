@@ -157,7 +157,7 @@ if uploaded_file is not None:
         cat = str(row.get('category_ids', row.get('CATEGORY', ''))).upper()
         
         # --- LOGS DES COMMENTAIRES ---
-        if "LOOK PURPOSE ONLY" in comm or "NOT FOR SALE" in comm:
+        if "LOOK PURPOSE ONLY" in comm or "NOT FOR SALE" in comm or "LOOK PURPOSES ONLY" in comm:
             logs.append(f"Row {line_num} : {smc_val} - NOT FOR SALE")
         
         if re.search(r'\bOLD\b', comm):
