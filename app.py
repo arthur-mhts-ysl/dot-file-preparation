@@ -149,7 +149,7 @@ if uploaded_file is not None:
         
     logs = []
     
-    def process_row(row, index):
+   def process_row(row, index):
         line_num = index + 2  
         smc_val = row.get('SMC') or row.get('SKU') or "N/A"
         comm = str(row.get('COMMENTAIRES', '')).upper()
@@ -165,31 +165,38 @@ if uploaded_file is not None:
         if re.search(r'\bOLD\b', comm):
             logs.append(f"ROW {line_num} : {smc_val} — SMC SWITCH")
             
-        # --- DÉTECTION CUIR ---
+        # --- DÉTECTION CUIR (Recherche partielle) ---
+        # On vérifie si un mot-clé de peausserie est dans l'appellation OU la matière
         name_upper = name.upper()
-        material_upper = material.upper()
-
         is_leather = any(k in name_upper for k in LEATHER_KEYWORDS) or \
-                     any(k in material_upper for k in LEATHER_KEYWORDS)
+                     any(k in material for k in LEATHER_KEYWORDS)
 
         # --- LOGIQUE DE RANKING ---
-        final_rank = row.get('product_ranking', None)
+        found_rank = None
+        
         if "RTW" in cat:
-            found_rank = None
-            
-            # 1. Recherche via le dictionnaire de mots-clés
+            # 1. On cherche d'abord la pièce de base dans le mapping (Manteau, Veste, etc.)
             for _, m_row in df_mapping.iterrows():
                 keywords = str(m_row['keywords']).lower().split()
                 if all(k in name for k in keywords):
                     found_rank = m_row['rank']
-                    break
+                    break # On s'arrête au premier match (ex: "manteau")
             
-            # 2. Surclassement automatique si Cuir détecté dans la matière
+            # 2. APPLICATION DU SURCLASSEMENT CUIR
+            # Si is_leather est Vrai, on transforme le 2 en 1 ou le 4 en 3
             if is_leather:
-                if found_rank == 2: found_rank = 1  # Manteau -> Manteau Cuir
-                if found_rank == 4: found_rank = 3  # Veste -> Veste Cuir
+                if found_rank == 2: 
+                    found_rank = 1
+                elif found_rank == 4: 
+                    found_rank = 3
+                # Optionnel : si c'est du cuir mais aucun vêtement n'a été reconnu
+                # on pourrait forcer un rank ici, sinon il restera à 17.
             
-            final_rank = found_rank if found_rank else 17
+            # 3. Attribution finale (si rien trouvé = 17)
+            final_rank = found_rank if found_rank is not None else 17
+        else:
+            # Si pas de RTW, on peut décider de renvoyer le rank actuel ou None
+            final_rank = row.get('product_ranking', None)
             
         return final_rank
 
