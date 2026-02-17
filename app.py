@@ -140,6 +140,10 @@ if uploaded_file is not None:
     except Exception:
         uploaded_file.seek(0)
         df = pd.read_csv(uploaded_file, sep=';', encoding='utf-8-sig', dtype=str)
+
+    # --- NORMALISATION DES COLONNES 
+    df.columns = [c.strip().upper() for c in df.columns]
+    df.columns = [" ".join(c.split()) for c in df.columns]
         
     logs = []
     
