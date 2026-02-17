@@ -149,7 +149,7 @@ if uploaded_file is not None:
         
     logs = []
     
-   def process_row(row, index):
+    def process_row(row, index):
         line_num = index + 2  
         smc_val = row.get('SMC') or row.get('SKU') or "N/A"
         comm = str(row.get('COMMENTAIRES', '')).upper()
