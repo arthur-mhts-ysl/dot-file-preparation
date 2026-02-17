@@ -76,7 +76,7 @@ st.markdown("""
 st.title("Verifications & Product Ranking")
 
 # --- LISTE DES MATIÈRES CUIR ---
-LEATHER_KEYWORDS = ["CUIR", "VEAU", "TAUREAU", "VACHE", "CROCODILE", "ALIGATOR", "PYTHON", "AGNEAU", "PEAU"]
+LEATHER_KEYWORDS = ["CUIR","LEATHER", "VEAU", "TAUREAU", "VACHE", "CROCODILE", "ALIGATOR", "PYTHON", "AGNEAU", "PEAU", "DAIM", "SHEEP"]
 
 # --- CHARGEMENT DU MAPPING ---
 mapping_data = [
@@ -166,8 +166,11 @@ if uploaded_file is not None:
             logs.append(f"ROW {line_num} : {smc_val} — SMC SWITCH")
             
         # --- DÉTECTION CUIR ---
-        is_leather = any(k in name.upper() for k in LEATHER_KEYWORDS) or \
-                     any(k in material for k in LEATHER_KEYWORDS)
+        name_upper = name.upper()
+        material_upper = material.upper()
+
+        is_leather = any(k in name_upper for k in LEATHER_KEYWORDS) or \
+                     any(k in material_upper for k in LEATHER_KEYWORDS)
 
         # --- LOGIQUE DE RANKING ---
         final_rank = row.get('product_ranking', None)
