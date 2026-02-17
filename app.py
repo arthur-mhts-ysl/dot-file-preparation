@@ -130,7 +130,7 @@ st.markdown("""
     • COLUMN: <b>"COMMENTAIRES"</b> OR <b>"COMMENTAIRE"</b> (UPPERCASE)<br>
     • COLUMN: <b>"APPELLATION"</b> OR <b>"APPELLATION COMMERCIALE"</b> (UPPERCASE)<br>
     • COLUMN: <b>"CATEGORY"</b> OR <b>"CATEGORIE"</b> (UPPERCASE)<br>
-    • COLUMN: <b>"DESCRIPTIF MATIERE"</b> OR <b>"MATIERE"</b> (UPPERCASE)
+    • COLUMN: <b>"DESCRIPTIF MATIERE"</b> OR <b>"APPELLATION MATIERE"</b> (UPPERCASE)
 </div>
 """, unsafe_allow_html=True)
 
@@ -154,8 +154,8 @@ if uploaded_file is not None:
         smc_val = row.get('SMC') or row.get('SKU') or "N/A"
         comm = str(row.get('COMMENTAIRES') or row.get('COMMENTAIRE') or '').upper()
         name = str(row.get('APPELLATION') or row.get('APPELLATION COMMERCIALE') or row.get('PRODUCT NAME') or '').upper()
-        material = str(row.get('DESCRIPTIF MATIERE') or row.get('MATIERE') or row.get('COMPOSITION') or '').upper()
-        cat = str(row.get('CATEGORY') or row.get('CATEGORIE') or row.get('CATEGORY IDS') or '').upper()
+        material = str(row.get('DESCRIPTIF MATIERE') or row.get('APPELLATION MATIERE') or '').upper()
+        cat = str(row.get('CATEGORY') or row.get('CATEGORIE') or '').upper()
         
         # 1. LOGS 
         if any(x in comm for x in ["LOOK PURPOSE ONLY", "NOT FOR SALE", "LOOK PURPOSES ONLY"]):
