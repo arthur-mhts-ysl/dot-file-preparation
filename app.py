@@ -125,11 +125,12 @@ uploaded_file = st.file_uploader("Please import your csv Exit list file", type="
 st.markdown("""
 <div style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 2rem;">
     PLEASE ENSURE THE FILE MEETS THE FOLLOWING REQUIREMENTS:<br>
-    • FORMAT: <b>CSV (";" - fORMAT)</b><br>
+    • FORMAT: <b>CSV (SEMICOLON-DELIMITED)</b><br>
     • COLUMN: <b>"SMC"</b> OR <b>"SKU"</b> (UPPERCASE)<br>
     • COLUMN: <b>"COMMENTAIRES"</b> OR <b>"COMMENTAIRE"</b> (UPPERCASE)<br>
     • COLUMN: <b>"APPELLATION"</b> OR <b>"APPELLATION COMMERCIALE"</b> (UPPERCASE)<br>
     • COLUMN: <b>"CATEGORY"</b> OR <b>"CATEGORIE"</b> (UPPERCASE)<br>
+    • COLUMN: <b>"LINE"</b> OR <b>"LIGNE"</b> (UPPERCASE)<br>
     • COLUMN: <b>"DESCRIPTIF MATIERE"</b> OR <b>"APPELLATION MATIERE"</b> (UPPERCASE)
 </div>
 """, unsafe_allow_html=True)
@@ -156,6 +157,7 @@ if uploaded_file is not None:
         name = str(row.get('APPELLATION') or row.get('APPELLATION COMMERCIALE') or row.get('PRODUCT NAME') or '').upper()
         material = str(row.get('DESCRIPTIF MATIERE') or row.get('APPELLATION MATIERE') or '').upper()
         cat = str(row.get('CATEGORY') or row.get('CATEGORIE') or '').upper()
+        line_val = str(row.get('LINE') or row.get('LIGNE') or '').upper()
         
         # 1. LOGS 
         if any(x in comm for x in ["LOOK PURPOSE ONLY", "NOT FOR SALE", "LOOK PURPOSES ONLY"]):
@@ -163,21 +165,31 @@ if uploaded_file is not None:
         if re.search(r'\bOLD\b', comm):
             logs.append(f"ROW {line_num} : {smc_val} — SMC SWITCH")
     
-        # 2. DÉTECTION MATIÈRE CUIR (Recherche partielle)
+        # 2. DÉTECTION MATIÈRE CUIR
+        # On vérifie si un mot-clé de cuir est présent dans le nom OU dans la matière
         is_leather = any(k in name for k in LEATHER_KEYWORDS) or \
                      any(k in material for k in LEATHER_KEYWORDS)
     
         # 3. IDENTIFICATION DE LA PIÈCE
         found_rank = None
+        
         if "RTW" in cat:
-            # Recherche de la pièce de base dans le mapping
+            # --- ÉTAPE A : Recherche dans l'APPELLATION ---
             for _, m_row in df_mapping.iterrows():
                 kw_list = str(m_row['keywords']).lower().split()
                 if all(k in name.lower() for k in kw_list):
                     found_rank = m_row['rank']
                     break
             
-            # 4. APPLICATION DU SURCLASSEMENT CUIR
+            # --- ÉTAPE B : FALLBACK dans la colonne LINE/LIGNE si rien trouvé ---
+            if found_rank is None and line_val != '':
+                for _, m_row in df_mapping.iterrows():
+                    kw_list = str(m_row['keywords']).lower().split()
+                    if all(k in line_val.lower() for k in kw_list):
+                        found_rank = m_row['rank']
+                        break
+
+            # --- ÉTAPE C : APPLICATION DU SURCLASSEMENT CUIR ---
             if is_leather:
                 if found_rank == 2:   # Manteau -> Rank 1
                     found_rank = 1
@@ -185,7 +197,7 @@ if uploaded_file is not None:
                     found_rank = 3
                 elif found_rank == 13: # Pantalon -> Rank 12
                     found_rank = 12
-                elif found_rank is None: # Cuir détecté mais pièce non identifiée
+                elif found_rank is None: # Cuir détecté mais pièce toujours non identifiée
                     found_rank = 17 
     
             # Valeur finale (si rien trouvé = 17)
