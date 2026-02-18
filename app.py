@@ -89,6 +89,7 @@ mapping_data = [
     {"keywords": "veste", "rank": 4},
     {"keywords": "jacket", "rank": 4},
     {"keywords": "blazer", "rank": 4},
+    {"keywords": "coupe vent", "rank": 4},
     {"keywords": "combinaison", "rank": 5},
     {"keywords": "jumpsuit", "rank": 5},
     {"keywords": "robe", "rank": 6},
@@ -125,7 +126,7 @@ uploaded_file = st.file_uploader("Please import your csv Exit list file", type="
 st.markdown("""
 <div style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 2rem;">
     PLEASE ENSURE THE FILE MEETS THE FOLLOWING REQUIREMENTS:<br>
-    • FORMAT: <b>CSV (SEMICOLON-DELIMITED)</b><br>
+    • FORMAT: <b>CSV ( ; FORMAT)</b><br>
     • COLUMN: <b>"SMC"</b> OR <b>"SKU"</b> (UPPERCASE)<br>
     • COLUMN: <b>"COMMENTAIRES"</b> OR <b>"COMMENTAIRE"</b> (UPPERCASE)<br>
     • COLUMN: <b>"APPELLATION"</b> OR <b>"APPELLATION COMMERCIALE"</b> (UPPERCASE)<br>
