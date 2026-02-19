@@ -155,8 +155,8 @@ if uploaded_file is not None:
     df.columns = [c.strip().upper() for c in df.columns]
     df.columns = [" ".join(c.split()) for c in df.columns]
         
-    logs = []
-    error_logs = [] # Liste séparée pour les logs critiques (rouge)
+    info_logs = []
+    error_logs = [] 
     
     def process_row(row, index):
         line_num = index + 2  
