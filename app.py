@@ -226,6 +226,26 @@ if uploaded_file is not None:
             
         return final_rank
 
+    # --- TRAITEMENT DU FORMAT LOOK (01 au lieu de 1) ---
+    look_col = None
+    for col in df.columns:
+        if "LOOK" in col:
+            look_col = col
+            break
+            
+    if look_col:
+        def format_look(val):
+            if pd.isna(val) or str(val).strip() == "":
+                return val
+            val_str = str(val).strip()
+            # Si c'est juste un chiffre (ex: "1") -> "01"
+            if val_str.isdigit() and len(val_str) < 2:
+                return val_str.zfill(2)
+            # Si c'est "LOOK 1" -> "LOOK 01"
+            return re.sub(r'(\b\d\b)', lambda m: m.group(1).zfill(2), val_str)
+
+        df[look_col] = df[look_col].apply(format_look)
+        
     # Traitement
     df['product_ranking'] = [process_row(row, i) for i, row in df.iterrows()]
     df['product_ranking'] = pd.to_numeric(df['product_ranking'], errors='coerce').astype('Int64')
