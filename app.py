@@ -90,6 +90,7 @@ mapping_data = [
     {"keywords": "bustier", "rank": 4},
     {"keywords": "gilet", "rank": 4},
     {"keywords": "veste", "rank": 4},
+    {"keywords": "vr", "rank": 4},
     {"keywords": "jacket", "rank": 4},
     {"keywords": "blazer", "rank": 4},
     {"keywords": "coupe vent", "rank": 4},
@@ -104,6 +105,7 @@ mapping_data = [
     {"keywords": "cardigan", "rank": 8},
     {"keywords": "chemise", "rank": 9},
     {"keywords": "shirt", "rank": 9},
+    {"keywords": "sr", "rank": 9},
     {"keywords": "chemisier", "rank": 9},
     {"keywords": "blouse", "rank": 9},
     {"keywords": "top", "rank": 10},
@@ -111,6 +113,7 @@ mapping_data = [
     {"keywords": "debardeur", "rank": 11},
     {"keywords": "tank top", "rank": 11},
     {"keywords": "pantalon", "rank": 13},
+    {"keywords": "pr", "rank": 13},
     {"keywords": "pants", "rank": 13},
     {"keywords": "jean", "rank": 13},
     {"keywords": "denim", "rank": 13},
@@ -126,18 +129,20 @@ df_mapping = pd.DataFrame(mapping_data)
 # --- INTERFACE ---
 uploaded_file = st.file_uploader("Please import your csv Exit list file", type="csv")
 
-st.markdown("""
-<div style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 2rem;">
-    PLEASE ENSURE THE FILE MEETS THE FOLLOWING REQUIREMENTS:<br>
-    • FORMAT: <b>CSV ( ; FORMAT)</b><br>
-    • COLUMN: <b>"SMC"</b> OR <b>"SKU"</b> (UPPERCASE)<br>
-    • COLUMN: <b>"COMMENTAIRES"</b> OR <b>"COMMENTAIRE"</b> (UPPERCASE)<br>
-    • COLUMN: <b>"APPELLATION"</b> OR <b>"APPELLATION COMMERCIALE"</b> (UPPERCASE)<br>
-    • COLUMN: <b>"CATEGORY"</b> OR <b>"CATEGORIE"</b> (UPPERCASE)<br>
-    • COLUMN: <b>"LINE"</b> OR <b>"LIGNE"</b> (UPPERCASE)<br>
-    • COLUMN: <b>"DESCRIPTIF MATIERE"</b> OR <b>"APPELLATION MATIERE"</b> (UPPERCASE)
-</div>
-""", unsafe_allow_html=True)
+# Affiche les instructions seulement si aucun fichier n'est chargé
+if uploaded_file is None:
+    st.markdown("""
+    <div style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 2rem;">
+        PLEASE ENSURE THE FILE MEETS THE FOLLOWING REQUIREMENTS:<br>
+        • FORMAT: <b>CSV ( ; FORMAT)</b><br>
+        • COLUMN: <b>"SMC"</b> OR <b>"SKU"</b> (UPPERCASE)<br>
+        • COLUMN: <b>"COMMENTAIRES"</b> OR <b>"COMMENTAIRE"</b> (UPPERCASE)<br>
+        • COLUMN: <b>"APPELLATION"</b> OR <b>"APPELLATION COMMERCIALE"</b> (UPPERCASE)<br>
+        • COLUMN: <b>"CATEGORY"</b> OR <b>"CATEGORIE"</b> (UPPERCASE)<br>
+        • COLUMN: <b>"LINE"</b> OR <b>"LIGNE"</b> (UPPERCASE)<br>
+        • COLUMN: <b>"DESCRIPTIF MATIERE"</b> OR <b>"APPELLATION MATIERE"</b> (UPPERCASE)
+    </div>
+    """, unsafe_allow_html=True)
 
 if uploaded_file is not None:
     try:
@@ -151,30 +156,37 @@ if uploaded_file is not None:
     df.columns = [" ".join(c.split()) for c in df.columns]
         
     logs = []
+    error_logs = [] # Liste séparée pour les logs critiques (rouge)
     
     def process_row(row, index):
         line_num = index + 2  
         
         # Récupération flexible des colonnes
-        smc_val = row.get('SMC') or row.get('SKU') or "N/A"
+        smc_val = str(row.get('SMC') or row.get('SKU') or "N/A")
         comm = str(row.get('COMMENTAIRES') or row.get('COMMENTAIRE') or '').upper()
         name = str(row.get('APPELLATION') or row.get('APPELLATION COMMERCIALE') or row.get('PRODUCT NAME') or '').upper()
         material = str(row.get('DESCRIPTIF MATIERE') or row.get('APPELLATION MATIERE') or '').upper()
         cat = str(row.get('CATEGORY') or row.get('CATEGORIE') or '').upper()
         line_val = str(row.get('LINE') or row.get('LIGNE') or '').upper()
         
-        # 1. LOGS 
+        # 1. LOGS DE FORMAT SMC/SKU (Critiques - Rouge)
+        if smc_val != "N/A":
+            if len(smc_val) != 15:
+                error_logs.append(f"ROW {line_num} : {smc_val} — SMC FORMAT NOT RESPECTED (15 CHARACTERS)")
+            if re.search(r'\s', smc_val):
+                error_logs.append(f"ROW {line_num} : {smc_val} — SMC FORMAT NOT RESPECTED (CONTAINING SPACES)")
+
+        # 2. LOGS INFO (Gris/Bleu)
         if any(x in comm for x in ["LOOK PURPOSE ONLY", "NOT FOR SALE", "LOOK PURPOSES ONLY"]):
             logs.append(f"ROW {line_num} : {smc_val} — NOT FOR SALE")
         if re.search(r'\bOLD\b', comm):
             logs.append(f"ROW {line_num} : {smc_val} — SMC SWITCH")
     
-        # 2. DÉTECTION MATIÈRE CUIR
-        # On vérifie si un mot-clé de cuir est présent dans le nom OU dans la matière
+        # 3. DÉTECTION MATIÈRE CUIR
         is_leather = any(k in name for k in LEATHER_KEYWORDS) or \
                      any(k in material for k in LEATHER_KEYWORDS)
     
-        # 3. IDENTIFICATION DE LA PIÈCE
+        # 4. IDENTIFICATION DE LA PIÈCE
         found_rank = None
         
         if "RTW" in cat:
@@ -185,7 +197,7 @@ if uploaded_file is not None:
                     found_rank = m_row['rank']
                     break
             
-            # --- ÉTAPE B : FALLBACK dans la colonne LINE/LIGNE si rien trouvé ---
+            # --- ÉTAPE B : FALLBACK dans la colonne LINE/LIGNE ---
             if found_rank is None and line_val != '':
                 for _, m_row in df_mapping.iterrows():
                     kw_list = str(m_row['keywords']).lower().split()
@@ -201,10 +213,9 @@ if uploaded_file is not None:
                     found_rank = 3
                 elif found_rank == 13: # Pantalon -> Rank 12
                     found_rank = 12
-                elif found_rank is None: # Cuir détecté mais pièce toujours non identifiée
+                elif found_rank is None: 
                     found_rank = 17 
     
-            # Valeur finale (si rien trouvé = 17)
             final_rank = found_rank if found_rank is not None else 17
         else:
             final_rank = None 
@@ -217,10 +228,18 @@ if uploaded_file is not None:
     
     # --- AFFICHAGE DES LOGS ---
     st.subheader("ANALYSIS LOGS")
+    
+    # Affichage des erreurs critiques d'abord (Rouge)
+    if error_logs:
+        for err in error_logs:
+            st.error(err)
+            
+    # Affichage des logs d'information (Gris standard)
     if logs:
         for log in logs:
             st.info(log)
-    else:
+            
+    if not logs and not error_logs:
         st.write("NO ALERT DETECTED")
 
     # --- TELECHARGEMENT ---
