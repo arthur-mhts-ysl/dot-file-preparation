@@ -161,26 +161,30 @@ if uploaded_file is not None:
     def process_row(row, index):
         line_num = index + 2  
         
-        # Récupération flexible des colonnes
-        smc_val = str(row.get('SMC') or row.get('SKU') or "N/A")
+        # --- RÉCUPÉRATION PROPRE (évite le texte "nan") ---
+        smc_raw = row.get('SMC') or row.get('SKU')
+        smc_val = str(smc_raw).strip() if pd.notna(smc_raw) else ""
+        
         comm = str(row.get('COMMENTAIRES') or row.get('COMMENTAIRE') or '').upper()
         name = str(row.get('APPELLATION') or row.get('APPELLATION COMMERCIALE') or row.get('PRODUCT NAME') or '').upper()
         material = str(row.get('DESCRIPTIF MATIERE') or row.get('APPELLATION MATIERE') or '').upper()
         cat = str(row.get('CATEGORY') or row.get('CATEGORIE') or '').upper()
         line_val = str(row.get('LINE') or row.get('LIGNE') or '').upper()
         
-        # 1. LOGS DE FORMAT SMC/SKU (Critiques - Rouge)
-        if smc_val != "N/A":
+        # --- 1. LOGS DE FORMAT (Uniquement si la case n'est pas vide) ---
+        if smc_val != "":
             if len(smc_val) != 15:
-                error_logs.append(f"ROW {line_num} : {smc_val} — SMC FORMAT NOT RESPECTED (15 CHARACTERS)")
-            if re.search(r'\s', smc_val):
-                error_logs.append(f"ROW {line_num} : {smc_val} — SMC FORMAT NOT RESPECTED (CONTAINING SPACES)")
+                error_logs.append(f"ROW {line_num} : {smc_val} — SMC FORMAT NOT RESPECTED (15 CARACTERS)")
+            elif " " in smc_val:
+                error_logs.append(f"ROW {line_num} : {smc_val} — SMC FORMAT NOT RESPECTED (CONTAINING SPACE)")
 
-        # 2. LOGS INFO (Gris/Bleu)
+        # --- 2. LOGS INFO ---
+        # On affiche le SMC s'il existe, sinon "N/A"
+        display_smc = smc_val if smc_val else "N/A"
         if any(x in comm for x in ["LOOK PURPOSE ONLY", "NOT FOR SALE", "LOOK PURPOSES ONLY"]):
-            logs.append(f"ROW {line_num} : {smc_val} — NOT FOR SALE")
+            info_logs.append(f"ROW {line_num} : {display_smc} — NOT FOR SALE")
         if re.search(r'\bOLD\b', comm):
-            logs.append(f"ROW {line_num} : {smc_val} — SMC SWITCH")
+            info_logs.append(f"ROW {line_num} : {display_smc} — SMC SWITCH")
     
         # 3. DÉTECTION MATIÈRE CUIR
         is_leather = any(k in name for k in LEATHER_KEYWORDS) or \
