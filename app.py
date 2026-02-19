@@ -239,11 +239,11 @@ if uploaded_file is not None:
             st.error(err)
             
     # Affichage des logs d'information (Gris standard)
-    if logs:
-        for log in logs:
+    if info_logs:
+        for log in info_logs:
             st.info(log)
             
-    if not logs and not error_logs:
+    if not info_logs and not error_logs:
         st.write("NO ALERT DETECTED")
 
     # --- TELECHARGEMENT ---
