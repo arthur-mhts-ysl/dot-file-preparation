@@ -254,52 +254,57 @@ if uploaded_file is not None:
     # ---------------------------------------------------------
     # --- AJOUT RÉORGANISATION ET INTERFACE COLLECTION_ID ---
     # ---------------------------------------------------------
+    
+    # 1. Détecter dynamiquement les meilleures sources pour chaque colonne cible
+    synonyms = {
+        "smc": ["SMC", "SKU", "ARTICLE"],
+        "product_name": ["APPELLATION", "APPELLATION COMMERCIALE", "PRODUCT NAME"],
+        "material_description": ["DESCRIPTIF MATIERE", "APPELLATION MATIERE"],
+        "category_ids": ["CATEGORY", "CATEGORIE"],
+        "model_code": ["MODEL CODE", "MODELE"],
+        "material_code": ["MATERIAL CODE", "CODE MATIERE"],
+        "color_code": ["COLOR CODE", "CODE COULEUR"],
+        "color_description": ["COLOR DESCRIPTION", "COULEUR"],
+        "department": ["DEPARTMENT", "DEPARTEMENT"],
+        "size_grid": ["SIZE GRID", "GRILLE TAILLE"]
+    }
+
+    # On prépare le mapping final
+    mapping_source = {"look_ids": look_col, "product_ranking": "product_ranking"}
+    
+    for target, options in synonyms.items():
+        # On cherche quelle colonne du CSV correspond à nos options
+        found = next((opt for opt in options if opt in df.columns), None)
+        mapping_source[target] = found
+
+    # 2. Interface Collection ID
     st.subheader("SETTINGS")
     collection_id_val = st.text_input("Please enter the COLLECTION_ID (required)", key="col_id")
-    
-    # On définit l'ordre attendu
+    df["collection_ids"] = collection_id_val
+
+    # 3. Construction des colonnes dans l'ordre attendu
     target_cols = [
         "collection_ids", "look_ids", "smc", "model_code", "product_name", 
         "material_code", "material_description", "color_code", "color_description", 
         "category_ids", "department", "product_ranking", "size_grid"
     ]
-    
-    # On prépare le mapping (Cible: Source_dans_ton_CSV)
-    mapping_source = {
-        "look_ids": look_col, # Détecté dynamiquement plus haut
-        "smc": "SMC",
-        "model_code": "MODEL CODE",
-        "product_name": "APPELLATION",
-        "material_code": "MATERIAL CODE",
-        "material_description": "DESCRIPTIF MATIERE",
-        "color_code": "COLOR CODE",
-        "color_description": "COLOR DESCRIPTION",
-        "category_ids": "CATEGORY",
-        "department": "DEPARTMENT",
-        "product_ranking": "product_ranking",
-        "size_grid": "SIZE GRID"
-    }
 
-    # Création de la colonne collection_ids avec la valeur de l'input
-    df["collection_ids"] = collection_id_val
-
-    # On crée/renomme les colonnes dans l'ordre
     for target in target_cols:
         if target == "collection_ids": continue
         
         source = mapping_source.get(target)
-        if source in df.columns:
+        if source and source in df.columns:
             df[target] = df[source]
         else:
-            df[target] = "" # Crée la colonne vide si absente
-            if target != "look_ids": # Évite le log si LOOK est absent mais géré
-                info_logs.append(f"COLUMN '{target.upper()}' NOT FOUND - Created as empty")
+            df[target] = "" 
+            # Log seulement si c'est une colonne vraiment importante qui manque
+            if target not in ["look_ids", "size_grid"]:
+                info_logs.append(f"COLUMN '{target.upper()}' NOT FOUND (tried: {synonyms.get(target)})")
 
-    # Réorganiser : Target en premier, puis le reste
+    # 4. Réorganiser les colonnes (Targets d'abord, le reste après)
     cols_at_start = [c for c in target_cols if c in df.columns]
     cols_remaining = [c for c in df.columns if c not in target_cols]
     df = df[cols_at_start + cols_remaining]
-    # ---------------------------------------------------------
 
     # --- AFFICHAGE DES LOGS ---
     st.subheader("ANALYSIS LOGS")
