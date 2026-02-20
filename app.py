@@ -250,7 +250,57 @@ if uploaded_file is not None:
     # Traitement
     df['product_ranking'] = [process_row(row, i) for i, row in df.iterrows()]
     df['product_ranking'] = pd.to_numeric(df['product_ranking'], errors='coerce').astype('Int64')
+
+    # ---------------------------------------------------------
+    # --- AJOUT RÉORGANISATION ET INTERFACE COLLECTION_ID ---
+    # ---------------------------------------------------------
+    st.subheader("SETTINGS")
+    collection_id_val = st.text_input("Please enter the COLLECTION_ID (required)", key="col_id")
     
+    # On définit l'ordre attendu
+    target_cols = [
+        "collection_ids", "look_ids", "smc", "model_code", "product_name", 
+        "material_code", "material_description", "color_code", "color_description", 
+        "category_ids", "department", "product_ranking", "size_grid"
+    ]
+    
+    # On prépare le mapping (Cible: Source_dans_ton_CSV)
+    mapping_source = {
+        "look_ids": look_col, # Détecté dynamiquement plus haut
+        "smc": "SMC",
+        "model_code": "MODEL CODE",
+        "product_name": "APPELLATION",
+        "material_code": "MATERIAL CODE",
+        "material_description": "DESCRIPTIF MATIERE",
+        "color_code": "COLOR CODE",
+        "color_description": "COLOR DESCRIPTION",
+        "category_ids": "CATEGORY",
+        "department": "DEPARTMENT",
+        "product_ranking": "product_ranking",
+        "size_grid": "SIZE GRID"
+    }
+
+    # Création de la colonne collection_ids avec la valeur de l'input
+    df["collection_ids"] = collection_id_val
+
+    # On crée/renomme les colonnes dans l'ordre
+    for target in target_cols:
+        if target == "collection_ids": continue
+        
+        source = mapping_source.get(target)
+        if source in df.columns:
+            df[target] = df[source]
+        else:
+            df[target] = "" # Crée la colonne vide si absente
+            if target != "look_ids": # Évite le log si LOOK est absent mais géré
+                info_logs.append(f"COLUMN '{target.upper()}' NOT FOUND - Created as empty")
+
+    # Réorganiser : Target en premier, puis le reste
+    cols_at_start = [c for c in target_cols if c in df.columns]
+    cols_remaining = [c for c in df.columns if c not in target_cols]
+    df = df[cols_at_start + cols_remaining]
+    # ---------------------------------------------------------
+
     # --- AFFICHAGE DES LOGS ---
     st.subheader("ANALYSIS LOGS")
     
@@ -269,10 +319,14 @@ if uploaded_file is not None:
 
     # --- TELECHARGEMENT ---
     st.subheader("EXPORT")
-    csv = df.to_csv(index=False, sep=';', encoding='utf-8-sig').encode('utf-8-sig')
-    st.download_button(
-        label="Download Ranking Result",
-        data=csv,
-        file_name="resultat_ranking.csv",
-        mime="text/csv"
-    )
+    
+    if not collection_id_val:
+        st.warning("Please enter a Collection ID to enable the download.")
+    else:
+        csv = df.to_csv(index=False, sep=';', encoding='utf-8-sig').encode('utf-8-sig')
+        st.download_button(
+            label="Download Ranking Result",
+            data=csv,
+            file_name=f"ranking_{collection_id_val}.csv",
+            mime="text/csv"
+        )
