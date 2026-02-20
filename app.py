@@ -136,6 +136,7 @@ if uploaded_file is None:
         PLEASE ENSURE THE FILE MEETS THE FOLLOWING REQUIREMENTS:<br>
         • FORMAT: <b>CSV ( ; FORMAT)</b><br>
         • COLUMN: <b>"SMC"</b> OR <b>"SKU"</b> (UPPERCASE)<br>
+        • COLUMN: <b>"LOOK"</b> (UPPERCASE)<br>
         • COLUMN: <b>"COMMENTAIRES"</b> OR <b>"COMMENTAIRE"</b> (UPPERCASE)<br>
         • COLUMN: <b>"APPELLATION"</b> OR <b>"APPELLATION COMMERCIALE"</b> (UPPERCASE)<br>
         • COLUMN: <b>"CATEGORY"</b> OR <b>"CATEGORIE"</b> (UPPERCASE)<br>
@@ -174,7 +175,7 @@ if uploaded_file is not None:
         # --- 1. LOGS DE FORMAT (Uniquement si la case n'est pas vide) ---
         if smc_val != "":
             if len(smc_val) != 15:
-                error_logs.append(f"ROW {line_num} : {smc_val} — SMC FORMAT NOT RESPECTED (15 CARACTERS)")
+                error_logs.append(f"ROW {line_num} : {smc_val} — SMC FORMAT NOT RESPECTED (15 CHARACTERS)")
             elif " " in smc_val:
                 error_logs.append(f"ROW {line_num} : {smc_val} — SMC FORMAT NOT RESPECTED (CONTAINING SPACE)")
 
