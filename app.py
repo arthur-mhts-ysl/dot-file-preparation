@@ -257,15 +257,15 @@ if uploaded_file is not None:
     
     # 1. Détecter dynamiquement les meilleures sources pour chaque colonne cible
     synonyms = {
-        "smc": ["SMC", "SKU", "ARTICLE"],
+        "smc": ["SMC", "SKU"],
         "product_name": ["APPELLATION", "APPELLATION COMMERCIALE", "PRODUCT NAME"],
         "material_description": ["DESCRIPTIF MATIERE", "APPELLATION MATIERE"],
         "category_ids": ["CATEGORY", "CATEGORIE"],
-        "model_code": ["MODEL CODE", "MODELE"],
+        "model_code": ["STEALTH","CODE STEALTH","MODEL CODE", "MODELE"],
         "material_code": ["MATERIAL CODE", "CODE MATIERE"],
-        "color_code": ["COLOR CODE", "CODE COULEUR"],
-        "color_description": ["COLOR DESCRIPTION", "COULEUR"],
-        "department": ["DEPARTMENT", "DEPARTEMENT"],
+        "color_code": ["COLOR CODE", "COULEUR"],
+        "color_description": ["COLOR DESCRIPTION", "COULEUR","CODE COULEUR"],
+        "department": ["DEPARTMENT", "DEPARTEMENT","DEPT CODE"],
         "size_grid": ["SIZE GRID", "GRILLE TAILLE"]
     }
 
