@@ -301,11 +301,9 @@ if uploaded_file is not None:
             if target not in ["look_ids", "size_grid"]:
                 info_logs.append(f"COLUMN '{target.upper()}' NOT FOUND (tried: {synonyms.get(target)})")
 
-    # 4. Réorganiser les colonnes (Targets d'abord, le reste après)
-    cols_at_start = [c for c in target_cols if c in df.columns]
-    cols_remaining = [c for c in df.columns if c not in target_cols]
-    df = df[cols_at_start + cols_remaining]
-
+    # 4. Réorganiser les colonnes pour suivre la template Exit List IMPORT
+    df = df[target_cols]
+    
     # --- AFFICHAGE DES LOGS ---
     st.subheader("ANALYSIS LOGS")
     
