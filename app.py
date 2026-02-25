@@ -304,6 +304,21 @@ if uploaded_file is not None:
     # 4. Réorganiser les colonnes pour suivre la template Exit List IMPORT
     df = df[target_cols]
     
+    # 5. Regroupement par SMC (Une ligne par produit, Looks concaténés)
+    # On définit les colonnes qui identifient de manière unique le produit
+    id_columns = [c for c in target_cols if c != 'look_ids']
+    
+    # On s'assure que look_ids est bien traité comme du texte pour la virgule
+    df['look_ids'] = df['look_ids'].astype(str).replace('nan', '')
+    
+    # On groupe par toutes les colonnes sauf le look
+    df = df.groupby(id_columns, as_index=False, dropna=False).agg({
+        'look_ids': lambda x: ', '.join(sorted(list(set(filter(None, x))), key=str))
+    })
+
+    # On remet les colonnes dans le bon ordre (car le groupby peut les décaler)
+    df = df[target_cols]
+    
     # --- AFFICHAGE DES LOGS ---
     st.subheader("ANALYSIS LOGS")
     
