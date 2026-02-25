@@ -312,7 +312,10 @@ if uploaded_file is not None:
     df = df[target_cols]
     # Enlever les espaces début/fin pour TOUTES les colonnes
     df = df.apply(lambda x: x.str.strip() if x.dtype == "object" else x)
-
+    
+    # SUPPRESSION DES RETOURS À LA LIGNE (Global)
+    df = df.replace(r'\n+|\r+', ' ', regex=True)
+    
     # Retirer TOUS les espaces pour Look IDs et Size Grid
     if 'look_ids' in df.columns:
         df['look_ids'] = df['look_ids'].str.replace(" ", "", regex=False)
