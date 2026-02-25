@@ -335,17 +335,6 @@ if uploaded_file is not None:
     
     # --- AFFICHAGE DES LOGS ---
     st.subheader("ANALYSIS LOGS")
-    # Bouton d'export des logs si des erreurs existent
-    if export_error_data:
-        df_errors = pd.DataFrame(export_error_data)
-        error_csv = df_errors.to_csv(index=False, sep=';').encode('utf-8-sig')
-        st.download_button(
-            label="Download Issues Log (CSV)",
-            data=error_csv,
-            file_name=f"issues_{collection_id_val}.csv",
-            mime="text/csv",
-            key="error_download"
-        )
     
     # Affichage des erreurs critiques d'abord (Rouge)
     if error_logs:
@@ -359,6 +348,17 @@ if uploaded_file is not None:
             
     if not info_logs and not error_logs:
         st.write("NO ALERT DETECTED")
+
+    # Bouton d'export des logs si des erreurs existent
+    if export_error_data:
+        df_errors = pd.DataFrame(export_error_data)
+        error_csv = df_errors.to_csv(index=False, sep=';').encode('utf-8-sig')
+        st.download_button(
+            label="Download Issues Log (CSV)",
+            data=error_csv,
+            file_name=f"issues_{collection_id_val}.csv",
+            mime="text/csv",
+            key="error_download")
 
     # --- TELECHARGEMENT ---
     st.subheader("EXPORT")
