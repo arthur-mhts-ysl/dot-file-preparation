@@ -157,35 +157,41 @@ if uploaded_file is not None:
     df.columns = [" ".join(c.split()) for c in df.columns]
         
     info_logs = []
-    error_logs = [] 
-    
+    export_error_data = []
+
     def process_row(row, index):
         line_num = index + 2  
         
-        # --- RÉCUPÉRATION PROPRE (évite le texte "nan") ---
         smc_raw = row.get('SMC') or row.get('SKU')
         smc_val = str(smc_raw).strip() if pd.notna(smc_raw) else ""
         
-        comm = str(row.get('COMMENTAIRES') or row.get('COMMENTAIRE') or '').upper()
+        comm = str(row.get('COMMENTAIRES') or row.get('COMMENTAIRE') or '').upper().strip()
         name = str(row.get('APPELLATION') or row.get('APPELLATION COMMERCIALE') or row.get('PRODUCT NAME') or '').upper()
         material = str(row.get('DESCRIPTIF MATIERE') or row.get('APPELLATION MATIERE') or '').upper()
         cat = str(row.get('CATEGORY') or row.get('CATEGORIE') or '').upper()
         line_val = str(row.get('LINE') or row.get('LIGNE') or '').upper()
         
-        # --- 1. LOGS DE FORMAT (Uniquement si la case n'est pas vide) ---
+        display_smc = smc_val if smc_val else f"UNKNOWN_ROW_{line_num}"
+
+        # --- LOGS DE FORMAT ---
         if smc_val != "":
             if len(smc_val) != 15:
-                error_logs.append(f"ROW {line_num} : {smc_val} — SMC FORMAT NOT RESPECTED (15 CHARACTERS)")
+                msg = "SMC FORMAT NOT RESPECTED (15 CHARACTERS)"
+                error_logs.append(f"ROW {line_num} : {smc_val} — {msg}")
+                export_error_data.append({"SMC": display_smc, "ISSUE": msg})
             elif " " in smc_val:
-                error_logs.append(f"ROW {line_num} : {smc_val} — SMC FORMAT NOT RESPECTED (CONTAINING SPACE)")
+                msg = "SMC FORMAT NOT RESPECTED (CONTAINING SPACE)"
+                error_logs.append(f"ROW {line_num} : {smc_val} — {msg}")
+                export_error_data.append({"SMC": display_smc, "ISSUE": msg})
 
-        # --- 2. LOGS INFO ---
-        # On affiche le SMC s'il existe, sinon "N/A"
-        display_smc = smc_val if smc_val else "N/A"
+        # --- LOGS INFO (SMC SWITCH avec commentaire) ---
         if any(x in comm for x in ["LOOK PURPOSE ONLY", "NOT FOR SALE", "LOOK PURPOSES ONLY"]):
             info_logs.append(f"ROW {line_num} : {display_smc} — NOT FOR SALE")
+        
         if re.search(r'\bOLD\b', comm):
-            info_logs.append(f"ROW {line_num} : {display_smc} — SMC SWITCH")
+            msg = f"SMC SWITCH (Comment: {comm})" # Ajout du commentaire ici
+            info_logs.append(f"ROW {line_num} : {display_smc} — {msg}")
+            export_error_data.append({"SMC": display_smc, "ISSUE": msg})
     
         # 3. DÉTECTION MATIÈRE CUIR
         is_leather = any(k in name for k in LEATHER_KEYWORDS) or \
@@ -303,6 +309,14 @@ if uploaded_file is not None:
 
     # 4. Réorganiser les colonnes pour suivre la template Exit List IMPORT
     df = df[target_cols]
+    # Enlever les espaces début/fin pour TOUTES les colonnes
+    df = df.apply(lambda x: x.str.strip() if x.dtype == "object" else x)
+
+    # Retirer TOUS les espaces pour Look IDs et Size Grid
+    if 'look_ids' in df.columns:
+        df['look_ids'] = df['look_ids'].str.replace(" ", "", regex=False)
+    if 'size_grid' in df.columns:
+        df['size_grid'] = df['size_grid'].str.replace(" ", "", regex=False)
     
     # 5. Regroupement par SMC (Une ligne par produit, Looks concaténés)
     # On définit les colonnes qui identifient de manière unique le produit
@@ -321,6 +335,17 @@ if uploaded_file is not None:
     
     # --- AFFICHAGE DES LOGS ---
     st.subheader("ANALYSIS LOGS")
+    # Bouton d'export des logs si des erreurs existent
+    if export_error_data:
+        df_errors = pd.DataFrame(export_error_data)
+        error_csv = df_errors.to_csv(index=False, sep=';').encode('utf-8-sig')
+        st.download_button(
+            label="Download Issues Log (CSV)",
+            data=error_csv,
+            file_name=f"issues_{collection_id_val}.csv",
+            mime="text/csv",
+            key="error_download"
+        )
     
     # Affichage des erreurs critiques d'abord (Rouge)
     if error_logs:
