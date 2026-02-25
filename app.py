@@ -162,6 +162,7 @@ if uploaded_file is not None:
     info_logs = []
     error_logs = []
     export_error_data = []
+    export_logs_list = []
 
     def process_row(row, index):
         line_num = index + 2  
