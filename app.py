@@ -4,7 +4,7 @@ import io
 import re
 
 # --- CONFIGURATION ---
-st.set_page_config(page_title="DOT import verificator", layout="wide")
+st.set_page_config(page_title="DOT - ECT", layout="wide")
 
 # --- DESIGN SAINT LAURENT ---
 st.markdown("""
@@ -73,7 +73,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-st.title("Verifications & Product Ranking")
+st.title("Exit List Configurator Tool")
 
 # --- LISTE DES MATIÈRES CUIR ---
 LEATHER_KEYWORDS = ["CUIR", "LEATHER", "VEAU", "TAUREAU", "VACHE", "CROCODILE", "ALIGATOR", "PYTHON", "AGNEAU", "PEAU", "DAIM", "SHEEP"]
