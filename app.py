@@ -157,6 +157,7 @@ if uploaded_file is not None:
     df.columns = [" ".join(c.split()) for c in df.columns]
         
     info_logs = []
+    error_logs = []
     export_error_data = []
 
     def process_row(row, index):
@@ -340,14 +341,6 @@ if uploaded_file is not None:
     if error_logs:
         for err in error_logs:
             st.error(err)
-            
-    # Affichage des logs d'information (Gris standard)
-    if info_logs:
-        for log in info_logs:
-            st.info(log)
-            
-    if not info_logs and not error_logs:
-        st.write("NO ALERT DETECTED")
 
     # Bouton d'export des logs si des erreurs existent
     if export_error_data:
@@ -359,6 +352,15 @@ if uploaded_file is not None:
             file_name=f"issues_{collection_id_val}.csv",
             mime="text/csv",
             key="error_download")
+            
+    # Affichage des logs d'information (Gris standard)
+    if info_logs:
+        for log in info_logs:
+            st.info(log)
+            
+    if not info_logs and not error_logs:
+        st.write("NO ALERT DETECTED")
+
 
     # --- TELECHARGEMENT ---
     st.subheader("EXPORT")
