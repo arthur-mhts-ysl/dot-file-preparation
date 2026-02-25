@@ -78,6 +78,9 @@ st.title("Exit List Configurator Tool")
 # --- LISTE DES MATIÈRES CUIR ---
 LEATHER_KEYWORDS = ["CUIR", "LEATHER", "VEAU", "TAUREAU", "VACHE", "CROCODILE", "ALIGATOR", "PYTHON", "AGNEAU", "PEAU", "DAIM", "SHEEP"]
 
+# --- LISTE DES PRODUITS A NE PAS IMPORTER ---
+REMOVE_KEYWORDS = ["COLLANT", "CULOTTE", "CHAUSSETTE"]
+
 # --- CHARGEMENT DU MAPPING ---
 mapping_data = [
     {"keywords": "mac", "rank": 2}, 
@@ -171,6 +174,9 @@ if uploaded_file is not None:
         material = str(row.get('DESCRIPTIF MATIERE') or row.get('APPELLATION MATIERE') or '').upper()
         cat = str(row.get('CATEGORY') or row.get('CATEGORIE') or '').upper()
         line_val = str(row.get('LINE') or row.get('LIGNE') or '').upper()
+        mod_c = str(row.get('STEALTH') or row.get('MODEL CODE') or '').strip()
+        mat_c = str(row.get('MATERIAL CODE') or row.get('CODE MATIERE') or '').strip()
+        col_c = str(row.get('COLOR CODE') or row.get('CODE COULEUR') or '').strip()
         
         display_smc = smc_val if smc_val else f"UNKNOWN_ROW_{line_num}"
 
@@ -185,7 +191,25 @@ if uploaded_file is not None:
                 error_logs.append(f"ROW {line_num} : {smc_val} — {msg}")
                 export_error_data.append({"SMC": display_smc, "ISSUE": msg})
 
+        # --- LOG DE CODES ---
+        checks = {mod_c: (6, "MODEL"), mat_c: (5, "MATERIAL"), col_c: (4, "COLOR")}
+        for val, (length, label) in checks.items():
+            if val and len(val) != length:
+                msg = f"{label} CODE FORMAT NOT RESPECTED ({length} CHARACTERS REQUIRED)"
+                error_logs.append(f"ROW {line_num} : {val} — {msg}")
+                export_logs_list.append({"ROW": line_num, "SMC": display_smc, "TYPE": "ERROR", "ISSUE": msg})
+
         # --- LOGS INFO (SMC SWITCH avec commentaire) ---
+        if "TBC" in smc_val.upper():
+            msg = "SMC TBC"
+            info_logs.append(f"ROW {line_num} : {smc_val} — {msg}")
+            export_logs_list.append({"ROW": line_num, "SMC": display_smc, "TYPE": "INFO", "ISSUE": msg})
+
+        if any(kw in name for kw in REMOVE_KEYWORDS):
+            msg = "SMC TO REMOVE"
+            info_logs.append(f"ROW {line_num} : {display_smc} — {msg} (Product: {name})")
+            export_logs_list.append({"ROW": line_num, "SMC": display_smc, "TYPE": "INFO", "ISSUE": msg})
+            
         if any(x in comm for x in ["LOOK PURPOSE ONLY", "NOT FOR SALE", "LOOK PURPOSES ONLY"]):
             info_logs.append(f"ROW {line_num} : {display_smc} — NOT FOR SALE")
         
@@ -346,15 +370,15 @@ if uploaded_file is not None:
             st.error(err)
 
     # Bouton d'export des logs si des erreurs existent
-    if export_error_data:
-        df_errors = pd.DataFrame(export_error_data)
-        error_csv = df_errors.to_csv(index=False, sep=';').encode('utf-8-sig')
+    if export_logs_list:
+        df_export = pd.DataFrame(export_logs_list)
+        csv_logs = df_export.to_csv(index=False, sep=';', encoding='utf-8-sig').encode('utf-8-sig')
         st.download_button(
-            label="Download Issues Log (CSV)",
-            data=error_csv,
-            file_name=f"issues_{collection_id_val}.csv",
-            mime="text/csv",
-            key="error_download")
+            label="Download All Issues (CSV)",
+            data=csv_logs,
+            file_name=f"all_issues_{collection_id_val}.csv",
+            mime="text/csv"
+        )
             
     # Affichage des logs d'information (Gris standard)
     if info_logs:
