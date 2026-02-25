@@ -328,7 +328,7 @@ if uploaded_file is not None:
     
     # On groupe par toutes les colonnes sauf le look
     df = df.groupby(id_columns, as_index=False, dropna=False).agg({
-        'look_ids': lambda x: ', '.join(sorted(list(set(filter(None, x))), key=str))
+        'look_ids': lambda x: ','.join(sorted(list(set(filter(None, x))), key=str))
     })
 
     # On remet les colonnes dans le bon ordre (car le groupby peut les décaler)
