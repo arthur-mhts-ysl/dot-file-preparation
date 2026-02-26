@@ -309,7 +309,24 @@ if uploaded_file is not None:
 
     # On prépare le mapping final
     mapping_source = {"look_ids": look_col, "product_ranking": "product_ranking"}
+
+    for target, options in synonyms.items():
+        # On cherche quelle colonne du CSV correspond à nos options
+        found = next((opt for opt in options if opt in df.columns), None)
+        mapping_source[target] = found
     
+    # 2. Interface Collection ID
+    st.subheader("SETTINGS")
+    collection_id_val = st.text_input("Please enter the COLLECTION_ID (required)", key="col_id")
+    df["collection_ids"] = collection_id_val
+
+    # 3. Construction des colonnes dans l'ordre attendu
+    target_cols = [
+        "collection_ids", "look_ids", "smc", "model_code", "product_name", 
+        "material_code", "material_description", "color_code", "color_description", 
+        "category_ids", "department", "product_ranking", "size_grid"
+    ]
+
     for target in target_cols:
         if target == "collection_ids": continue
         
@@ -331,30 +348,6 @@ if uploaded_file is not None:
             df[target] = "" 
             if target not in ["look_ids", "size_grid"]:
                 info_logs.append(f"COLUMN '{target.upper()}' NOT FOUND")
-
-    # 2. Interface Collection ID
-    st.subheader("SETTINGS")
-    collection_id_val = st.text_input("Please enter the COLLECTION_ID (required)", key="col_id")
-    df["collection_ids"] = collection_id_val
-
-    # 3. Construction des colonnes dans l'ordre attendu
-    target_cols = [
-        "collection_ids", "look_ids", "smc", "model_code", "product_name", 
-        "material_code", "material_description", "color_code", "color_description", 
-        "category_ids", "department", "product_ranking", "size_grid"
-    ]
-
-    for target in target_cols:
-        if target == "collection_ids": continue
-        
-        source = mapping_source.get(target)
-        if source and source in df.columns:
-            df[target] = df[source]
-        else:
-            df[target] = "" 
-            # Log seulement si c'est une colonne vraiment importante qui manque
-            if target not in ["look_ids", "size_grid"]:
-                info_logs.append(f"COLUMN '{target.upper()}' NOT FOUND (tried: {synonyms.get(target)})")
 
     # 4. Réorganiser les colonnes pour suivre la template Exit List IMPORT
     df = df[target_cols]
