@@ -168,6 +168,7 @@ if uploaded_file is not None:
     export_logs_list = []
 
     def process_row(row, index):
+        mod_c, mat_c, col_c = "", "", ""
         line_num = index + 2  
         
         smc_raw = row.get('SMC') or row.get('SKU')
@@ -178,16 +179,18 @@ if uploaded_file is not None:
         material = str(row.get('DESCRIPTIF MATIERE') or row.get('APPELLATION MATIERE') or '').upper()
         cat = str(row.get('CATEGORY') or row.get('CATEGORIE') or '').upper()
         line_val = str(row.get('LINE') or row.get('LIGNE') or '').upper()
-        mod_c = str(row.get('STEALTH') or row.get('MODEL CODE') or '').strip()
-        mat_c = str(row.get('MATERIAL CODE') or row.get('CODE MATIERE') or '').strip()
-        col_c = str(row.get('COLOR CODE') or row.get('CODE COULEUR') or '').strip()
+        # Découpage automatique si le SMC est valide (15 chars)
+        if len(smc_val) == 15:
+            mod_c = smc_val[0:6]   # 6 premiers
+            mat_c = smc_val[6:11]  # 5 suivants
+            col_c = smc_val[11:15] # 4 derniers
         
         display_smc = smc_val if smc_val else f"UNKNOWN_ROW_{line_num}"
 
         # --- LOGS DE FORMAT ---
         if smc_val != "":
             if len(smc_val) != 15:
-                msg = "SMC FORMAT NOT RESPECTED (15 CHARACTERS)"
+                msg = "SMC FORMAT NOT RESPECTED (15 CHARACTERS REQUIRED) - VERIFY THE DIFFERENT CODES (MODEL, MATERIAL, COLOR)"
                 error_logs.append(f"ROW {line_num} : {smc_val} — {msg}")
                 export_error_data.append({"SMC": display_smc, "ISSUE": msg})
             elif " " in smc_val:
@@ -196,12 +199,12 @@ if uploaded_file is not None:
                 export_error_data.append({"SMC": display_smc, "ISSUE": msg})
 
         # --- LOG DE CODES ---
-        checks = {mod_c: (6, "MODEL"), mat_c: (5, "MATERIAL"), col_c: (4, "COLOR")}
-        for val, (length, label) in checks.items():
-            if val and len(val) != length:
-                msg = f"{label} CODE FORMAT NOT RESPECTED ({length} CHARACTERS REQUIRED)"
-                error_logs.append(f"ROW {line_num} : {val} — {msg}")
-                export_logs_list.append({"ROW": line_num, "SMC": display_smc, "TYPE": "ERROR", "ISSUE": msg})
+        # checks = {mod_c: (6, "MODEL"), mat_c: (5, "MATERIAL"), col_c: (4, "COLOR")}
+        # for val, (length, label) in checks.items():
+        #     if val and len(val) != length:
+        #         msg = f"{label} CODE FORMAT NOT RESPECTED ({length} CHARACTERS REQUIRED)"
+        #         error_logs.append(f"ROW {line_num} : {val} — {msg}")
+        #         export_logs_list.append({"ROW": line_num, "SMC": display_smc, "TYPE": "ERROR", "ISSUE": msg})
 
         # --- LOGS INFO (SMC SWITCH avec commentaire) ---
         if "TBC" in smc_val.upper():
@@ -307,10 +310,27 @@ if uploaded_file is not None:
     # On prépare le mapping final
     mapping_source = {"look_ids": look_col, "product_ranking": "product_ranking"}
     
-    for target, options in synonyms.items():
-        # On cherche quelle colonne du CSV correspond à nos options
-        found = next((opt for opt in options if opt in df.columns), None)
-        mapping_source[target] = found
+    for target in target_cols:
+        if target == "collection_ids": continue
+        
+        source = mapping_source.get(target)
+        
+        # CAS PARTICULIER : Remplissage automatique via le SMC
+        if source == "AUTO_EXTRACT":
+            if target == "model_code":
+                df[target] = df[mapping_source["smc"]].apply(lambda x: str(x)[0:6] if pd.notna(x) and len(str(x)) == 15 else "")
+            elif target == "material_code":
+                df[target] = df[mapping_source["smc"]].apply(lambda x: str(x)[6:11] if pd.notna(x) and len(str(x)) == 15 else "")
+            elif target == "color_code":
+                df[target] = df[mapping_source["smc"]].apply(lambda x: str(x)[11:15] if pd.notna(x) and len(str(x)) == 15 else "")
+        
+        # CAS CLASSIQUE : Copie de la colonne trouvée
+        elif source and source in df.columns:
+            df[target] = df[source]
+        else:
+            df[target] = "" 
+            if target not in ["look_ids", "size_grid"]:
+                info_logs.append(f"COLUMN '{target.upper()}' NOT FOUND")
 
     # 2. Interface Collection ID
     st.subheader("SETTINGS")
