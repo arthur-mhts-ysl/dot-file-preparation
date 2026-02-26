@@ -208,7 +208,7 @@ if uploaded_file is not None:
 
         # --- LOGS INFO (SMC SWITCH avec commentaire) ---
         if "TBC" in smc_val.upper():
-            msg = "SMC TBC"
+            msg = "SMC TBC - VERIFY THE DIFFERENT CODES (MODEL, MATERIAL, COLOR)"
             info_logs.append(f"ROW {line_num} : {smc_val} — {msg}")
             export_logs_list.append({"ROW": line_num, "SMC": display_smc, "TYPE": "INFO", "ISSUE": msg})
 
