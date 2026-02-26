@@ -309,7 +309,7 @@ if uploaded_file is not None:
         "model_code": ["STEALTH","CODE STEALTH","MODEL CODE", "MODELE"],
         "material_code": ["MATERIAL CODE", "CODE MATIERE"],
         "color_code": ["COLOR CODE", "COULEUR", "CODE COULEUR"],
-        "color_description": ["COLOR DESCRIPTION", "COULEUR","CODE COULEUR"],
+        "color_description": ["COLOR DESCRIPTION", "DESCRIPTIF COULEUR", "APPELLATION COULEUR"],
         "department": ["DEPARTMENT", "DEPARTEMENT","DEPT CODE"],
         "size_grid": ["SIZE GRID", "GRILLE TAILLE"]
     }
