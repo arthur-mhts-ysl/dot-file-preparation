@@ -293,7 +293,14 @@ if uploaded_file is not None:
     # --- AJOUT RÉORGANISATION ET INTERFACE COLLECTION_ID ---
     # ---------------------------------------------------------
     
-    # 1. Détecter dynamiquement les meilleures sources pour chaque colonne cible
+    # 1. Définir l'ordre des colonnes cibles
+    target_cols = [
+        "collection_ids", "look_ids", "smc", "model_code", "product_name", 
+        "material_code", "material_description", "color_code", "color_description", 
+        "category_ids", "department", "product_ranking", "size_grid"
+    ]
+
+    # 2. Détecter les sources
     synonyms = {
         "smc": ["SMC", "SKU"],
         "product_name": ["APPELLATION", "APPELLATION COMMERCIALE", "PRODUCT NAME"],
@@ -307,41 +314,39 @@ if uploaded_file is not None:
         "size_grid": ["SIZE GRID", "GRILLE TAILLE"]
     }
 
-    # On prépare le mapping final
     mapping_source = {"look_ids": look_col, "product_ranking": "product_ranking"}
-
-    for target, options in synonyms.items():
-        # On cherche quelle colonne du CSV correspond à nos options
-        found = next((opt for opt in options if opt in df.columns), None)
-        mapping_source[target] = found
     
-    # 2. Interface Collection ID
+    for target, options in synonyms.items():
+        # PRIORITÉ : Pour les codes, on force l'extraction depuis le SMC
+        if target in ["model_code", "material_code", "color_code"]:
+            mapping_source[target] = "AUTO_EXTRACT"
+        else:
+            found = next((opt for opt in options if opt in df.columns), None)
+            mapping_source[target] = found
+
+    # 3. Interface Collection ID
     st.subheader("SETTINGS")
     collection_id_val = st.text_input("Please enter the COLLECTION_ID (required)", key="col_id")
     df["collection_ids"] = collection_id_val
 
-    # 3. Construction des colonnes dans l'ordre attendu
-    target_cols = [
-        "collection_ids", "look_ids", "smc", "model_code", "product_name", 
-        "material_code", "material_description", "color_code", "color_description", 
-        "category_ids", "department", "product_ranking", "size_grid"
-    ]
+    # 4. Remplissage des colonnes (C'est ici qu'on remplace les valeurs)
+    orig_smc_col = mapping_source.get("smc")
 
     for target in target_cols:
         if target == "collection_ids": continue
         
         source = mapping_source.get(target)
         
-        # CAS PARTICULIER : Remplissage automatique via le SMC
-        if source == "AUTO_EXTRACT":
+        # ICI ON FORCE LE CALCUL SUR LES VALEURS
+        if source == "AUTO_EXTRACT" and orig_smc_col:
             if target == "model_code":
-                df[target] = df[mapping_source["smc"]].apply(lambda x: str(x)[0:6] if pd.notna(x) and len(str(x)) == 15 else "")
+                df[target] = df[orig_smc_col].apply(lambda x: str(x).strip()[0:6] if pd.notna(x) and len(str(x).strip()) == 15 else "")
             elif target == "material_code":
-                df[target] = df[mapping_source["smc"]].apply(lambda x: str(x)[6:11] if pd.notna(x) and len(str(x)) == 15 else "")
+                df[target] = df[orig_smc_col].apply(lambda x: str(x).strip()[6:11] if pd.notna(x) and len(str(x).strip()) == 15 else "")
             elif target == "color_code":
-                df[target] = df[mapping_source["smc"]].apply(lambda x: str(x)[11:15] if pd.notna(x) and len(str(x)) == 15 else "")
+                df[target] = df[orig_smc_col].apply(lambda x: str(x).strip()[11:15] if pd.notna(x) and len(str(x).strip()) == 15 else "")
         
-        # CAS CLASSIQUE : Copie de la colonne trouvée
+        # Pour les autres colonnes, on copie la source si elle existe
         elif source and source in df.columns:
             df[target] = df[source]
         else:
