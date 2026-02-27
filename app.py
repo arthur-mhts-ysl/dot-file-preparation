@@ -477,7 +477,7 @@ if uploaded_file is not None:
     else:
         csv = df.to_csv(index=False, sep=';', encoding='utf-8-sig').encode('utf-8-sig')
         st.download_button(
-            label="Download Ranking Result",
+            label="Download Exit List import file",
             data=csv,
             file_name=f"{collection_id_val}_V1.csv",
             mime="text/csv"
