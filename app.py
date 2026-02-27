@@ -152,7 +152,13 @@ if uploaded_file is not None:
         display_smc = smc_val if smc_val else f"UNKNOWN_ROW_{line_num}"
 
         # --- LOGS SMC ---
-        if smc_val != "":
+        if smc_val == "":
+            # Cas où le SMC est totalement absent
+            msg = "MISSING SMC"
+            error_logs.append(f"ROW {line_num} : {msg}")
+            export_logs_list.append({"ROW": line_num, "SMC": "N/A", "TYPE": "ERROR", "ISSUE": msg})
+        else:
+            # Cas où le SMC existe mais a un mauvais format
             if len(smc_val) != 15:
                 msg = "SMC FORMAT NOT RESPECTED (15 CHARACTERS REQUIRED)"
                 error_logs.append(f"ROW {line_num} : {smc_val} — {msg}")
@@ -245,32 +251,51 @@ if uploaded_file is not None:
     # On identifie les sources réelles
     mapping_source = {"product_ranking": "product_ranking"}
     for target, opts in SYNONYMS.items():
-        if target in ["model_code", "material_code", "color_code"]: mapping_source[target] = "AUTO_EXTRACT"
+        if target in ["model_code", "material_code", "color_code", "department"]: 
+            mapping_source[target] = "AUTO_EXTRACT"
         else: mapping_source[target] = next((opt for opt in opts if opt in df.columns), None)
-
+    
     df["collection_ids"] = collection_id_val
     orig_smc_col = mapping_source.get("smc")
 
+    cat_source = mapping_source.get("category_ids")
+    if cat_source and cat_source in df.columns:
+        df["category_ids"] = df.apply(
+            lambda row: allocate_category(
+                row[cat_source], current_gender, row.name, row.get(orig_smc_col, "N/A"), error_logs, export_logs_list
+            ), axis=1
+        )
+        
     for target in TARGET_COLS:
         if target == "collection_ids": continue
+        # On saute category_ids car on vient de le faire au-dessus
+        if target == "category_ids": continue 
+        
         source = mapping_source.get(target)
         
-        if source == "AUTO_EXTRACT" and orig_smc_col:
-            if target == "model_code":
+        if source == "AUTO_EXTRACT":
+            if target == "model_code" and orig_smc_col:
                 df[target] = df[orig_smc_col].apply(lambda x: str(x).strip()[0:6] if pd.notna(x) and len(str(x).strip()) == 15 else "")
-            elif target == "material_code":
+            elif target == "material_code" and orig_smc_col:
                 df[target] = df[orig_smc_col].apply(lambda x: str(x).strip()[6:11] if pd.notna(x) and len(str(x).strip()) == 15 else "")
-            elif target == "color_code":
+            elif target == "color_code" and orig_smc_col:
                 df[target] = df[orig_smc_col].apply(lambda x: str(x).strip()[11:15] if pd.notna(x) and len(str(x).strip()) == 15 else "")
+            elif target == "department":
+                def compute_dept(cat_val, gender):
+                    val = str(cat_val).upper()
+                    if "RTW" in val:
+                        return "MRTW" if gender == "MEN" else "WRTW"
+                    return val
+                # Ici, x sera la catégorie "allouée" (ex: WRTW LOOKS) car calculée au-dessus
+                df[target] = df["category_ids"].apply(lambda x: compute_dept(x, current_gender))
+        
         elif source and source in df.columns:
-            if target == "category_ids":
-                df[target] = df.apply(lambda row: allocate_category(row[source], current_gender, row.name, row.get(orig_smc_col, "N/A"), error_logs, export_logs_list), axis=1)
-            else:
-                df[target] = df[source]
+            df[target] = df[source]
         else:
             df[target] = ""
-            if target not in ["look_ids", "size_grid"]: info_logs.append(f"COLUMN '{target.upper()}' NOT FOUND")
-
+            if target not in ["look_ids", "size_grid"]: 
+                info_logs.append(f"COLUMN '{target.upper()}' NOT FOUND")
+                
     # --- NETTOYAGE & GROUPBY ---
     df = df[TARGET_COLS]
     df = df.apply(lambda x: x.str.strip() if x.dtype == "object" else x)
