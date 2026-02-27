@@ -317,15 +317,15 @@ if uploaded_file is not None:
     synonyms = {
         "look_ids": ["LOOK", "LOOKS", "NUMERO LOOK", "LOOK NUMBER"],
         "smc": ["SMC", "SKU"],
-        "product_name": ["APPELLATION", "APPELLATION COMMERCIALE", "PRODUCT NAME"],
+        "product_name": ["APPELLATION", "APPELLATION COMMERCIALE", "PRODUCT NAME", "STYLE DESC"],
         "material_description": ["DESCRIPTIF MATIERE", "APPELLATION MATIERE", "MATERIAL DESCRIPTION"],
         "category_ids": ["CATEGORY", "CATEGORIE"],
         "model_code": ["STEALTH","CODE STEALTH","MODEL CODE", "MODELE"],
         "material_code": ["MATERIAL CODE", "CODE MATIERE"],
         "color_code": ["COLOR CODE", "COULEUR", "CODE COULEUR"],
-        "color_description": ["COLOR DESCRIPTION", "DESCRIPTIF COULEUR", "APPELLATION COULEUR"],
+        "color_description": ["COLOR DESCRIPTION", "COLOR DESC", "DESCRIPTIF COULEUR", "APPELLATION COULEUR"],
         "department": ["DEPARTMENT", "DEPARTEMENT","DEPT CODE"],
-        "size_grid": ["SIZE GRID", "GRILLE TAILLE"]
+        "size_grid": ["SIZE GRID", "SIZE_GRID"]
     }
 
     # --- TRAITEMENT DU FORMAT LOOK (01 au lieu de 1) ---
