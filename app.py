@@ -93,6 +93,8 @@ mapping_data = [
     {"keywords": "bustier", "rank": 4},
     {"keywords": "gilet", "rank": 4},
     {"keywords": "veste", "rank": 4},
+    {"keywords": "doudoune", "rank": 4},
+    {"keywords": "bombardier", "rank": 4},
     {"keywords": "vr", "rank": 4},
     {"keywords": "jacket", "rank": 4},
     {"keywords": "blazer", "rank": 4},
@@ -175,9 +177,9 @@ if uploaded_file is not None:
         # Logique de transformation
         if "RTW" in cat or cat in ["SOIE", "FLOU", "SPW", "CHEMISE", "JERSEY", "KNITWEAR", "MAILLE", "SPORTSWEAR TECHNIQUE", "TAILLEUR", "DENIM"]:
             return f"{g_prefix}RTW LOOKS"
-        elif "SHOES" in cat:
+        elif "SHOES" in cat or cat in ["CHAUSSURE", "CHAUSSURES"]:
             return f"{g_prefix}SHOES"
-        elif "BELTS" in cat or cat == "CEINTURE":
+        elif "BELTS" in cat or cat in ["CEINTURE", "CEINTURES"]:
             return f"{g_prefix}BELTS"
         elif "SMLG" in cat or cat == "MSMLG": # SMLG avant SLG pour éviter les conflits
             return f"{g_prefix}SMLG"
@@ -187,7 +189,9 @@ if uploaded_file is not None:
             return "JEWELRY"
         elif cat == "BIJOUX CUIR":
             return "LEATHER JEWELRY"
-        elif cat in ["SUNGLASSES", "SOFT ACCESSORIES", "EYEWEAR", "JEWELRY", "LEATHER JEWELRY", "LUGGAGE", "HANDBAGS"]:
+        elif "SUNGLASSES" in cat or cat in ["LUNETTE", "LUNETTES"]:
+            return "SUNGLASSES"
+        elif cat in ["SOFT ACCESSORIES", "EYEWEAR", "JEWELRY", "LEATHER JEWELRY", "LUGGAGE", "HANDBAGS"]:
             return cat
         
         # Si aucun cas ne correspond
@@ -293,26 +297,6 @@ if uploaded_file is not None:
             final_rank = None 
             
         return final_rank
-
-    # --- TRAITEMENT DU FORMAT LOOK (01 au lieu de 1) ---
-    look_col = None
-    for col in df.columns:
-        if "LOOK" or "LOOK NUMBER" in col:
-            look_col = col
-            break
-            
-    if look_col:
-        def format_look(val):
-            if pd.isna(val) or str(val).strip() == "":
-                return val
-            val_str = str(val).strip()
-            # Si c'est juste un chiffre (ex: "1") -> "01"
-            if val_str.isdigit() and len(val_str) < 2:
-                return val_str.zfill(2)
-            # Si c'est "LOOK 1" -> "LOOK 01"
-            return re.sub(r'(\b\d\b)', lambda m: m.group(1).zfill(2), val_str)
-
-        df[look_col] = df[look_col].apply(format_look)
         
     # Traitement
     df['product_ranking'] = [process_row(row, i) for i, row in df.iterrows()]
@@ -331,6 +315,7 @@ if uploaded_file is not None:
 
     # 2. Détecter les sources
     synonyms = {
+        "look_ids": ["LOOK", "LOOKS", "NUMERO LOOK", "LOOK NUMBER"],
         "smc": ["SMC", "SKU"],
         "product_name": ["APPELLATION", "APPELLATION COMMERCIALE", "PRODUCT NAME"],
         "material_description": ["DESCRIPTIF MATIERE", "APPELLATION MATIERE", "MATERIAL DESCRIPTION"],
@@ -343,10 +328,31 @@ if uploaded_file is not None:
         "size_grid": ["SIZE GRID", "GRILLE TAILLE"]
     }
 
+    # --- TRAITEMENT DU FORMAT LOOK (01 au lieu de 1) ---
+    # On utilise les synonymes pour trouver la colonne à formater
+    look_col_to_format = next((opt for opt in synonyms["look_ids"] if opt in df.columns), None)
+            
+    if look_col_to_format:
+        def format_look(val):
+            if pd.isna(val) or str(val).strip() == "":
+                return val
+            val_str = str(val).strip()
+            if val_str.isdigit() and len(val_str) < 2:
+                return val_str.zfill(2)
+            return re.sub(r'(\b\d\b)', lambda m: m.group(1).zfill(2), val_str)
+
+        df[look_col_to_format] = df[look_col_to_format].apply(format_look)
+        # On définit look_col pour la suite du mapping source
+        look_col = look_col_to_format 
+    else:
+        look_col = None
+
+    # On prépare le mapping final
     mapping_source = {"look_ids": look_col, "product_ranking": "product_ranking"}
     
     for target, options in synonyms.items():
-        # PRIORITÉ : Pour les codes, on force l'extraction depuis le SMC
+        if target == "look_ids": continue # Déjà géré au-dessus
+        
         if target in ["model_code", "material_code", "color_code"]:
             mapping_source[target] = "AUTO_EXTRACT"
         else:
