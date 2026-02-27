@@ -152,7 +152,7 @@ if uploaded_file is not None:
         display_smc = smc_val if smc_val else f"UNKNOWN_ROW_{line_num}"
 
         # --- LOGS SMC ---
-        if smc_val == "":
+        if len(smc_val) = 0:
             # Cas où le SMC est totalement absent
             msg = "MISSING SMC"
             error_logs.append(f"ROW {line_num} : {msg}")
