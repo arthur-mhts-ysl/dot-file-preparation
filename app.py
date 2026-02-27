@@ -333,7 +333,7 @@ if uploaded_file is not None:
     synonyms = {
         "smc": ["SMC", "SKU"],
         "product_name": ["APPELLATION", "APPELLATION COMMERCIALE", "PRODUCT NAME"],
-        "material_description": ["DESCRIPTIF MATIERE", "APPELLATION MATIERE"],
+        "material_description": ["DESCRIPTIF MATIERE", "APPELLATION MATIERE", "MATERIAL DESCRIPTION"],
         "category_ids": ["CATEGORY", "CATEGORIE"],
         "model_code": ["STEALTH","CODE STEALTH","MODEL CODE", "MODELE"],
         "material_code": ["MATERIAL CODE", "CODE MATIERE"],
