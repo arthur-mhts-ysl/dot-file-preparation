@@ -167,6 +167,35 @@ if uploaded_file is not None:
     export_error_data = []
     export_logs_list = []
 
+    def allocate_category(raw_cat, gender, row_idx, smc):
+        if not gender: return ""
+        cat = str(raw_cat).upper().strip()
+        g_prefix = "M" if gender == "MEN" else "W"
+        
+        # Logique de transformation
+        if "RTW" in cat or cat in ["SOIE", "FLOU", "SPW", "CHEMISE", "JERSEY", "KNITWEAR", "MAILLE", "SPORTSWEAR TECHNIQUE", "TAILLEUR", "DENIM"]:
+            return f"{g_prefix}RTW LOOKS"
+        elif "SHOES" in cat:
+            return f"{g_prefix}SHOES"
+        elif "BELTS" in cat or cat == "CEINTURE":
+            return f"{g_prefix}BELTS"
+        elif "SMLG" in cat or cat == "MSMLG": # SMLG avant SLG pour éviter les conflits
+            return f"{g_prefix}SMLG"
+        elif "SLG" in cat:
+            return f"{g_prefix}SLG"
+        elif cat == "BIJOUX":
+            return "JEWELRY"
+        elif cat == "BIJOUX CUIR":
+            return "LEATHER JEWELRY"
+        elif cat in ["SUNGLASSES", "SOFT ACCESSORIES", "EYEWEAR", "JEWELRY", "LEATHER JEWELRY", "LUGGAGE", "HANDBAGS"]:
+            return cat
+        
+        # Si aucun cas ne correspond
+        msg = f"'{cat}' NOT RECOGNIZED FOR CATEGORY ALLOCATION"
+        error_logs.append(f"ROW {row_idx + 2} : {smc} — {msg}")
+        export_logs_list.append({"ROW": row_idx + 2, "SMC": smc, "TYPE": "ERROR", "ISSUE": msg})
+        return cat
+
     def process_row(row, index):
         mod_c, mat_c, col_c = "", "", ""
         line_num = index + 2  
@@ -329,6 +358,26 @@ if uploaded_file is not None:
     collection_id_val = st.text_input("Please enter the COLLECTION_ID (required)", key="col_id")
     df["collection_ids"] = collection_id_val
 
+    # Gestion des boutons Gender avec session_state
+    if 'gender' not in st.session_state:
+        st.session_state.gender = None
+
+    col_men, col_women = st.columns(2)
+    
+    with col_men:
+        if st.button("MEN", use_container_width=True, type="primary" if st.session_state.gender == "MEN" else "secondary"):
+            st.session_state.gender = "MEN"
+            st.rerun()
+
+    with col_women:
+        if st.button("WOMEN", use_container_width=True, type="primary" if st.session_state.gender == "WOMEN" else "secondary"):
+            st.session_state.gender = "WOMEN"
+            st.rerun()
+
+    current_gender = st.session_state.gender
+    if current_gender:
+        st.write(f"Selection: **{current_gender}**")
+
     # 4. Remplissage des colonnes (C'est ici qu'on remplace les valeurs)
     orig_smc_col = mapping_source.get("smc")
 
@@ -348,7 +397,11 @@ if uploaded_file is not None:
         
         # Pour les autres colonnes, on copie la source si elle existe
         elif source and source in df.columns:
-            df[target] = df[source]
+            if target == "category_ids":
+                # On applique l'allocation dynamique
+                df[target] = df.apply(lambda row: allocate_category(row[source], current_gender, row.name, row[orig_smc_col]), axis=1)
+            else:
+                df[target] = df[source]
         else:
             df[target] = "" 
             if target not in ["look_ids", "size_grid"]:
@@ -413,14 +466,13 @@ if uploaded_file is not None:
 
     # --- TELECHARGEMENT ---
     st.subheader("EXPORT")
-    
-    if not collection_id_val:
-        st.warning("Please enter a Collection ID to enable the download.")
+    if not collection_id_val or not current_gender:
+        st.warning("Please enter a Collection ID and select a Gender to enable download.")
     else:
         csv = df.to_csv(index=False, sep=';', encoding='utf-8-sig').encode('utf-8-sig')
         st.download_button(
             label="Download Ranking Result",
             data=csv,
-            file_name=f"ranking_{collection_id_val}.csv",
+            file_name=f"{collection_id_val}_V1.csv",
             mime="text/csv"
         )
