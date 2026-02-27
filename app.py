@@ -297,7 +297,7 @@ if uploaded_file is not None:
     # --- TRAITEMENT DU FORMAT LOOK (01 au lieu de 1) ---
     look_col = None
     for col in df.columns:
-        if "LOOK" in col:
+        if "LOOK" or "LOOK NUMBER" in col:
             look_col = col
             break
             
