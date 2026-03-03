@@ -305,14 +305,24 @@ if uploaded_file is not None:
                 
     # --- NETTOYAGE & GROUPBY ---
     df = df[TARGET_COLS]
-    df = df.apply(lambda x: x.str.strip() if x.dtype == "object" else x)
+   
+    df = df.astype(str).replace(['nan', 'None', '<NA>'], '')
+    df = df.apply(lambda x: x.str.strip())
     df = df.replace(r'\n+|\r+', ' ', regex=True)
-    
-    if 'look_ids' in df.columns: df['look_ids'] = df['look_ids'].astype(str).str.replace(" ", "", regex=False).replace('nan', '')
-    if 'size_grid' in df.columns: df['size_grid'] = df['size_grid'].astype(str).str.replace(" ", "", regex=False).replace('nan', '')
-    
+
+    # Définir les colonnes sur lesquelles grouper (tout sauf look_ids)
     id_cols_group = [c for c in TARGET_COLS if c != 'look_ids']
-    df = df.groupby(id_cols_group, as_index=False, dropna=False).agg({'look_ids': lambda x: ','.join(sorted(list(set(filter(None, x))), key=str))})
+    
+    # Groupement avec sécurisation du tri des looks
+    def combine_looks(x):
+        # On filtre les valeurs vides et on dédoublonne
+        clean_list = list(set(filter(None, x)))
+        # On trie (zfill permet de trier 02 avant 10 correctement)
+        return ','.join(sorted(clean_list))
+
+    df = df.groupby(id_cols_group, as_index=False, dropna=False).agg({'look_ids': combine_looks})
+    
+    # Réorganiser les colonnes une dernière fois
     df = df[TARGET_COLS]
 
     # --- LOGS & EXPORTS ---
