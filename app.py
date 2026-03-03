@@ -101,7 +101,7 @@ def allocate_category(raw_cat, gender, row_idx, smc, error_logs, export_logs_lis
     
     msg = f"'{cat}' NOT RECOGNIZED FOR CATEGORY ALLOCATION"
     error_logs.append(f"ROW {row_idx + 2} : {smc} — {msg}")
-    export_logs_list.append({"ROW": row_idx + 2, "SMC": smc, "TYPE": "ERROR", "ISSUE": msg})
+    export_logs_list.append({"ROW": row_idx + 2, "SMC": smc, "ISSUE": msg, "TAB": "CATEGORY ISSUES"})
     return cat
 
 # ==========================================
