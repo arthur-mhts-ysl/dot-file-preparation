@@ -153,14 +153,16 @@ if uploaded_file is not None:
             error_logs.append(f"ROW {line_num} : {msg}")
             export_logs_list.append({"ROW": line_num, "SMC": "N/A", "ISSUE": msg, "TAB": "SMC FORMAT ISSUES", "DETAIL": ""})
         else:
-            if len(smc_val) != 15:
-                msg = "SMC FORMAT NOT RESPECTED (15 CHARACTERS REQUIRED)"
-                error_logs.append(f"ROW {line_num} : {smc_val} — {msg}")
-                export_logs_list.append({"ROW": line_num, "SMC": display_smc, "ISSUE": msg, "TAB": "SMC FORMAT ISSUES", "DETAIL": ""})
-            elif " " in smc_val:
+            if  " " in smc_val:
                 msg = "SMC FORMAT NOT RESPECTED (CONTAINING SPACE)"
                 error_logs.append(f"ROW {line_num} : {smc_val} — {msg}")
                 export_logs_list.append({"ROW": line_num, "SMC": display_smc, "ISSUE": msg, "TAB": "SMC FORMAT ISSUES", "DETAIL": ""})
+            
+            elif len(smc_val) != 15:
+                msg = "SMC FORMAT NOT RESPECTED (15 CHARACTERS REQUIRED)"
+                error_logs.append(f"ROW {line_num} : {smc_val} — {msg}")
+                export_logs_list.append({"ROW": line_num, "SMC": display_smc, "ISSUE": msg, "TAB": "SMC FORMAT ISSUES", "DETAIL": ""})
+            
 
         if "TBC" in smc_val.upper():
             msg = "SMC TBC - VERIFY CODES"
