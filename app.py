@@ -141,8 +141,13 @@ if uploaded_file is not None:
     def process_row(row, index):
         line_num = index + 2  
         
-        # Récupération dynamique basée sur le mapping
-        smc_val = get_col_val(row, "smc").strip()
+        # Récupération propre pour éviter le "nan" textuel
+        smc_raw = get_col_val(row, "smc")
+        if pd.isna(smc_raw) or str(smc_raw).strip().lower() == "nan" or str(smc_raw).strip() == "":
+            smc_val = ""
+        else:
+            smc_val = str(smc_raw).strip()
+            
         name = get_col_val(row, "product_name").upper()
         material = get_col_val(row, "material_description").upper()
         cat = get_col_val(row, "category_ids").upper()
@@ -156,35 +161,37 @@ if uploaded_file is not None:
             # Cas où le SMC est totalement absent
             msg = "MISSING SMC"
             error_logs.append(f"ROW {line_num} : {msg}")
-            export_logs_list.append({"ROW": line_num, "SMC": "N/A", "TYPE": "ERROR", "ISSUE": msg})
+            export_logs_list.append({"ROW": line_num, "SMC": "N/A", "ISSUE": msg, "TAB": "SMC FORMAT ISSUES"})
         else:
             # Cas où le SMC existe mais a un mauvais format
             if len(smc_val) != 15:
                 msg = "SMC FORMAT NOT RESPECTED (15 CHARACTERS REQUIRED)"
                 error_logs.append(f"ROW {line_num} : {smc_val} — {msg}")
-                export_logs_list.append({"ROW": line_num, "SMC": display_smc, "TYPE": "ERROR", "ISSUE": msg})
+                export_logs_list.append({"ROW": line_num, "SMC": display_smc, "ISSUE": msg, "TAB": "SMC FORMAT ISSUES"})
             elif " " in smc_val:
                 msg = "SMC FORMAT NOT RESPECTED (CONTAINING SPACE)"
                 error_logs.append(f"ROW {line_num} : {smc_val} — {msg}")
-                export_logs_list.append({"ROW": line_num, "SMC": display_smc, "TYPE": "ERROR", "ISSUE": msg})
+                export_logs_list.append({"ROW": line_num, "SMC": display_smc, "ISSUE": msg, "TAB": "SMC FORMAT ISSUES"})
 
         if "TBC" in smc_val.upper():
             msg = "SMC TBC - VERIFY CODES"
             info_logs.append(f"ROW {line_num} : {smc_val} — {msg}")
-            export_logs_list.append({"ROW": line_num, "SMC": display_smc, "TYPE": "INFO", "ISSUE": msg})
+            export_logs_list.append({"ROW": line_num, "SMC": display_smc, "ISSUE": msg, "TAB": "SMC FORMAT ISSUES"})
 
         if any(kw in name for kw in REMOVE_KEYWORDS):
             msg = "SMC TO REMOVE"
             info_logs.append(f"ROW {line_num} : {display_smc} — {msg} (Product: {name})")
-            export_logs_list.append({"ROW": line_num, "SMC": display_smc, "TYPE": "INFO", "ISSUE": msg})
+            export_logs_list.append({"ROW": line_num, "SMC": display_smc, "ISSUE": "SMC TO REMOVE", "TAB": "SMC TO REMOVE", "DETAIL": name})
             
         if any(x in comm for x in ["LOOK PURPOSE ONLY", "NOT FOR SALE", "LOOK PURPOSES ONLY"]):
-            info_logs.append(f"ROW {line_num} : {display_smc} — NOT FOR SALE")
+            msg = f"SMC NOT FOR SALE (Comment: {comm})"
+            info_logs.append(f"ROW {line_num} : {display_smc} — {msg}")
+            export_logs_list.append({"ROW": line_num, "SMC": display_smc, "ISSUE": "SMC NOT FOR SALE", "TAB": "SMC NOT FOR SALE", "DETAIL": comm})
         
         if re.search(r'\bOLD\b', comm):
             msg = f"SMC SWITCH (Comment: {comm})"
             info_logs.append(f"ROW {line_num} : {display_smc} — {msg}")
-            export_logs_list.append({"ROW": line_num, "SMC": display_smc, "TYPE": "INFO", "ISSUE": msg})
+            export_logs_list.append({"ROW": line_num, "SMC": display_smc, "ISSUE": "SMC SWITCH", "TAB": "SMC SWITCH", "DETAIL": comm})
 
         # --- RANKING LOGIC ---
         is_leather = any(k in name for k in LEATHER_KEYWORDS) or any(k in material for k in LEATHER_KEYWORDS)
@@ -311,9 +318,30 @@ if uploaded_file is not None:
     # --- LOGS & EXPORTS ---
     st.subheader("ANALYSIS LOGS")
     if export_logs_list:
-        df_ex = pd.DataFrame(export_logs_list)
-        st.download_button("Download All Issues (CSV)", df_ex.to_csv(index=False, sep=';').encode('utf-8-sig'), f"all_issues_{collection_id_val}.csv", "text/csv")
+        df_logs_full = pd.DataFrame(export_logs_list)
+        output = io.BytesIO()
+        
+        with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+            for tab_name in df_logs_full['TAB'].unique():
+                # Filtrage et renommage dynamique
+                df_tab = df_logs_full[df_logs_full['TAB'] == tab_name][['ROW', 'SMC', 'ISSUE', 'DETAIL']].copy()
+                col_name = "APPELLATION" if tab_name == "SMC TO REMOVE" else "COMMENTAIRE"
+                df_tab.rename(columns={'DETAIL': col_name}, inplace=True)
+                
+                df_tab.to_excel(writer, sheet_name=tab_name[:31], index=False)
+                
+                # Ajustement largeur colonnes
+                worksheet = writer.sheets[tab_name[:31]]
+                for idx, col in enumerate(df_tab.columns):
+                    worksheet.set_column(idx, idx, 20)
 
+        st.download_button(
+            label="Download All Issues",
+            data=output.getvalue(),
+            file_name=f"all_issues_{collection_id_val}.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
+    
     if error_logs:
         for err in error_logs: st.error(err)
     if info_logs:
