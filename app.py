@@ -215,8 +215,20 @@ if uploaded_file is not None:
             return re.sub(r'(\b\d\b)', lambda m: m.group(1).zfill(2), val_str)
         df[look_col_source] = df[look_col_source].apply(format_look)
 
+    # Calcul du ranking
     df['product_ranking'] = [process_row(row, i) for i, row in df.iterrows()]
-    df['product_ranking'] = df['product_ranking'].astype(str).replace(['nan', 'None', '<NA>'], '')
+    
+    # Transformation en entier puis en texte pour supprimer le .0
+    def clean_rank(val):
+        if pd.isna(val) or val == "" or str(val).lower() == "none" or str(val).lower() == "nan":
+            return ""
+        try:
+            # On transforme en float puis en int pour être sûr de supprimer le .0
+            return str(int(float(val)))
+        except:
+            return str(val)
+
+    df['product_ranking'] = df['product_ranking'].apply(clean_rank)
 
     # --- INTERFACE SETTINGS ---
     st.subheader("SETTINGS")
