@@ -81,7 +81,7 @@ def allocate_category(raw_cat, gender, row_idx, smc, error_logs, export_logs_lis
     cat = str(raw_cat).upper().strip()
     g_prefix = "M" if gender == "MEN" else "W"
     
-    if "RTW" in cat or cat in ["SOIE", "FLOU", "SPW", "CHEMISE", "JERSEY", "KNITWEAR", "MAILLE", "SPORTSWEAR TECHNIQUE", "TAILLEUR", "DENIM"]:
+    if "RTW" in cat or cat in ["SOIE", "FLOU", "SPW", "CHEMISE", "JERSEY", "KNITWEAR", "MAILLE", "SPORTSWEAR TECHNIQUE", "TAILLEUR", "DENIM", "SPORTSWEAR"]:
         return f"{g_prefix}RTW LOOKS"
     elif "SHOES" in cat or cat in ["CHAUSSURE", "CHAUSSURES"]:
         return f"{g_prefix}SHOES"
@@ -119,7 +119,14 @@ if uploaded_file is not None:
 
     df.columns = [c.strip().upper() for c in df.columns]
     df.columns = [" ".join(c.split()) for c in df.columns]
+    df = df.dropna(how='all')
     
+    # On identifie la colonne SMC pour supprimer les lignes où le SMC est vraiment vide
+    smc_col_name = next((opt for opt in SYNONYMS["smc"] if opt in df.columns), None)
+    if smc_col_name:
+        # On garde uniquement les lignes où le SMC n'est pas vide (après avoir enlevé les espaces)
+        df = df[df[smc_col_name].fillna('').str.strip() != '']
+        
     info_logs = []
     error_logs = []
     export_logs_list = []
