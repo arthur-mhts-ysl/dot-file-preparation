@@ -31,16 +31,16 @@ st.title("Exit List Configurator Tool")
 SYNONYMS = {
     "look_ids": ["LOOK", "LOOKS", "NUMERO LOOK", "LOOK NUMBER"],
     "smc": ["SMC", "SKU", "ARTICLE"],
-    "product_name": ["APPELLATION", "APPELLATION COMMERCIALE", "PRODUCT NAME", "STYLE DESC"],
-    "material_description": ["DESCRIPTIF MATIERE", "APPELLATION MATIERE", "MATERIAL DESCRIPTION"],
+    "product_name": ["APPELLATION", "APPELLATION COMMERCIALE", "PRODUCT NAME", "STYLE DESC", "DESCRIPTION MODELE"],
+    "material_description": ["DESCRIPTIF MATIERE", "APPELLATION MATIERE", "MATERIAL DESCRIPTION", "DESCRIPTION MATIERE"],
     "category_ids": ["CATEGORY", "CATEGORIE"],
     "line": ["LINE", "LIGNE"],
-    "model_code": ["STEALTH","CODE STEALTH","MODEL CODE", "MODELE"],
-    "material_code": ["MATERIAL CODE", "CODE MATIERE"],
-    "color_code": ["COLOR CODE", "COULEUR", "CODE COULEUR"],
-    "color_description": ["COLOR DESCRIPTION", "COLOR DESC", "DESCRIPTIF COULEUR", "APPELLATION COULEUR"],
+    "model_code": ["STEALTH","CODE STEALTH","CODESTEALTH", "MODEL CODE", "MODELE"],
+    "material_code": ["MATERIAL CODE", "CODE MATIERE", "CODEMATIERE"],
+    "color_code": ["COLOR CODE", "COULEUR", "CODE COULEUR", "CODECOULEUR"],
+    "color_description": ["COLOR DESCRIPTION", "COLOR DESC", "DESCRIPTIF COULEUR", "APPELLATION COULEUR","DESCRIPTION COULEUR"],
     "department": ["DEPARTMENT", "DEPARTEMENT","DEPT CODE"],
-    "size_grid": ["SIZE GRID", "SIZE_GRID"]
+    "size_grid": ["SIZE GRID", "SIZE_GRID","SIZEGRID"]
 }
 
 TARGET_COLS = [
